@@ -1,6 +1,6 @@
-# What's The Whitecat Create Agent?
+# What's The Whitecat Console?
 
-The Whitecat Create Agent is a small piece of software that runs on your computer, and allows the communication beetween a [Lua RTOS device](https://github.com/whitecatboard/Lua-RTOS-ESP32) and [The Whitecat IDE](https://github.com/whitecatboard/whitecat-ide). This is needed because the IDE must perform many operations that needs to use your computer hardware, and the IDE is on the cloud!. The communication beetween the agent and the IDE is made using websockets
+The Whitecat Console is a command line tool that allows the programmer to send and receive files to / from Lua RTOS compatible boards without using an IDE.
 
 # How to build?
 
@@ -15,13 +15,13 @@ The Whitecat Create Agent is a small piece of software that runs on your compute
 1. Download and install
 
    ```lua
-   go get github.com/whitecatboard/whitecat-create-agent
+   go get github.com/whitecatboard/whitecat-console
    ```
 
 1. Go to the project source root
 
    ```lua
-   cd src/github.com/whitecatboard/whitecat-create-agent
+   cd src/github.com/whitecatboard/whitecat-console
    ```
 
 1. Build project
@@ -35,13 +35,13 @@ The Whitecat Create Agent is a small piece of software that runs on your compute
    Linux / OSX:
    
    ```lua
-   ./whitecat-create-agent
+   ./wcc
    ```
    
    Windows:
    
    ```lua
-   whitecat-create-agent.exe
+   wcc.exe
    ```
 
 # Read the wiki
