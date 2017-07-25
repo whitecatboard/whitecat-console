@@ -922,10 +922,6 @@ func (board *Board) upgrade() {
         cmdArgs[i] = strings.Replace(cmdArgs[i], "\"","", -1)
 	}
 		
-	for _,v := range cmdArgs {
-        fmt.Println(v)
-	}
-
 	// Prepare for execution
 	cmd := exec.Command(AppDataTmpFolder+"/utils/esptool/esptool", cmdArgs...)
 

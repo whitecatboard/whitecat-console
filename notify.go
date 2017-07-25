@@ -42,5 +42,7 @@ import (
 func notify(notification string, data string) {
 	if (notification == "progress") {
 		fmt.Print(data)
+	} else if(notification == "boardUpdate") {
+		fmt.Print("\033[K" + data + "\r")
 	}
 }

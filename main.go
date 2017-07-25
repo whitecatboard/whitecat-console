@@ -35,6 +35,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"net/http"
 	"os/user"
 	"path"
 	"runtime"
@@ -49,12 +50,13 @@ var AppDataTmpFolder string = "/tmp"
 var AppFileName = ""
 
 func usage() {
-	fmt.Println("wcc: usage: wccagent -p port [-ls path | -down source destination | -up source destination | -d]")
+	fmt.Println("wcc: usage: wccagent -p port [-ls path | -down source destination | -up source destination | -f | -d]")
 	fmt.Println("")
 	fmt.Println("-p port:\t serial port device, for example /dev/tty.SLAB_USBtoUART")
 	fmt.Println("-ls path:\t list files present in path")
 	fmt.Println("-down src dst:\t transfer the source file (board) to destination file (computer)")
 	fmt.Println("-up src dst:\t transfer the source file (computer) to destination file (board)")
+	fmt.Println("-f:\t\t flash board with last firmware")
 	fmt.Println("-d:\t\t show debug messages")
 	fmt.Println("")
 }
@@ -73,6 +75,7 @@ func main() {
 	ls := false
 	down := false
 	up := false
+	flash := false
 	nextIsPort := false
 	nextIsSrc := false
 	nextIsDst := false
@@ -128,6 +131,9 @@ func main() {
 			
 		case "-d":
 			dbg = true
+
+		case "-f":
+			flash = true
 		
 		default:
 			if i > 0 {
@@ -138,7 +144,7 @@ func main() {
 		i = i + 1
 	}
 	
-	if !up && !down && !ls {
+	if !up && !down && !ls && !flash {
 		ok = false
 	}
 
@@ -226,5 +232,49 @@ func main() {
 		}
 
 		connectedBoard.writeFile(dst, file)
-	}
+		} else if flash {
+			newBuild := false
+			
+			connectedBoard.consoleOut = false
+			connectedBoard.consoleIn = true
+			connectedBoard.timeout(2000)
+			connectedBoard.model = connectedBoard.sendCommand("os.board()")
+			connectedBoard.noTimeout()
+			connectedBoard.consoleOut = true
+			connectedBoard.consoleIn = false	
+			
+			connectedBoard.consoleOut = false
+			connectedBoard.consoleIn = true
+			connectedBoard.timeout(2000)
+			commit := connectedBoard.sendCommand("do local commit; _, _, _, commit = os.version();print(commit);end")
+			connectedBoard.noTimeout()
+			connectedBoard.consoleOut = true
+			connectedBoard.consoleIn = false	
+			
+			// Test for a new firmware version
+			resp, err := http.Get("http://whitecatboard.org/lastbuild.php?board=" + connectedBoard.model + "&commit=1")
+			if err == nil {
+				body, err := ioutil.ReadAll(resp.Body)
+				if err == nil {
+					lastCommit := string(body)
+
+					if commit != lastCommit {
+						newBuild = true
+						notify("progress", "new firmware available " + commit + "\r\n")
+					} else {
+						notify("progress", "board is updated " + commit + "\r\n")
+					}
+				} else {
+					panic(err)
+				}
+			} else {
+				panic(err)
+			}
+			
+			if newBuild {
+				connectedBoard.upgrade()
+				notify("progress", "\nboard upgraded to " + commit + "\r\n")
+			}
+						
+		}
 }
