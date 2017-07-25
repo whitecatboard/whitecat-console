@@ -71,3 +71,8 @@ Upload s.lua file and store it as system.lua in your board
 ```lua
 ./wcc -p /dev/tty.SLAB_USBtoUART -up s.lua system.lua
 ```
+
+Upgrade the board with last available firmware
+```lua
+./wcc -p /dev/tty.SLAB_USBtoUART -f
+```
