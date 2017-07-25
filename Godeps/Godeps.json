@@ -1,0 +1,114 @@
+{
+	"ImportPath": "github.com/whitecatboard/whitecat-create-agent",
+	"GoVersion": "go1.7",
+	"GodepVersion": "v79",
+	"Deps": [
+		{
+			"ImportPath": "github.com/Sirupsen/logrus",
+			"Comment": "v0.11.5-18-g5b60b3d",
+			"Rev": "5b60b3d3ee017ed00bcd0225fcca7acab767844b"
+		},
+		{
+			"ImportPath": "github.com/getlantern/context",
+			"Rev": "624d99b1798d7c5375ea1d3ca4c5b04d58f7c775"
+		},
+		{
+			"ImportPath": "github.com/getlantern/errors",
+			"Rev": "99fa440517e8f3d1e4cd8d6dbed6b41f4c1ed3d6"
+		},
+		{
+			"ImportPath": "github.com/getlantern/filepersist",
+			"Rev": "c5f0cd24e7991579ba6f5f1bd20a1ad2c9f06cd4"
+		},
+		{
+			"ImportPath": "github.com/getlantern/golog",
+			"Rev": "e69a4a00c012e476efd814128cdcd4e04e641dc7"
+		},
+		{
+			"ImportPath": "github.com/getlantern/hex",
+			"Rev": "083fba3033ad473db3dd31c9bb368473d37581a7"
+		},
+		{
+			"ImportPath": "github.com/getlantern/hidden",
+			"Rev": "d52a649ab33af200943bb599898dbdcfdbc94cb7"
+		},
+		{
+			"ImportPath": "github.com/getlantern/ops",
+			"Rev": "b70875f5d689a9438bca72aefd7142a2af889b18"
+		},
+		{
+			"ImportPath": "github.com/getlantern/stack",
+			"Comment": "v1.5.0-1-g02f928a",
+			"Rev": "02f928aad224fbccd50d66edd776fc9d1e9f2f2b"
+		},
+		{
+			"ImportPath": "github.com/getlantern/systray",
+			"Rev": "cdae0bdf2aeae3ffb5ffe0cd2e2f83443ca9d104"
+		},
+		{
+			"ImportPath": "github.com/gin-gonic/gin",
+			"Comment": "v1.1.4-1-gd5b353c",
+			"Rev": "d5b353c5d5a560322e6d96121c814115562501f7"
+		},
+		{
+			"ImportPath": "github.com/gin-gonic/gin/binding",
+			"Comment": "v1.1.4-1-gd5b353c",
+			"Rev": "d5b353c5d5a560322e6d96121c814115562501f7"
+		},
+		{
+			"ImportPath": "github.com/gin-gonic/gin/render",
+			"Comment": "v1.1.4-1-gd5b353c",
+			"Rev": "d5b353c5d5a560322e6d96121c814115562501f7"
+		},
+		{
+			"ImportPath": "github.com/golang/protobuf/proto",
+			"Rev": "b50ceb1fa9818fa4d78b016c2d4ae025593a7ce3"
+		},
+		{
+			"ImportPath": "github.com/kardianos/osext",
+			"Rev": "ae77be60afb1dcacde03767a8c37337fad28ac14"
+		},
+		{
+			"ImportPath": "github.com/manucorporat/sse",
+			"Rev": "ee05b128a739a0fb76c7ebd3ae4810c1de808d6d"
+		},
+		{
+			"ImportPath": "github.com/mattn/go-isatty",
+			"Comment": "v0.0.2",
+			"Rev": "fc9e8d8ef48496124e79ae0df75490096eccf6fe"
+		},
+		{
+			"ImportPath": "github.com/mikepb/go-serial",
+			"Rev": "3db078dbcc1c04e919dfb1d9c39ae42d15b6129d"
+		},
+		{
+			"ImportPath": "github.com/oxtoacart/bpool",
+			"Rev": "4e1c5567d7c2dd59fa4c7c83d34c2f3528b025d6"
+		},
+		{
+			"ImportPath": "github.com/skratchdot/open-golang/open",
+			"Rev": "75fb7ed4208cf72d323d7d02fd1a5964a7a9073c"
+		},
+		{
+			"ImportPath": "golang.org/x/net/context",
+			"Rev": "feeb485667d1fdabe727840fe00adc22431bc86e"
+		},
+		{
+			"ImportPath": "golang.org/x/net/websocket",
+			"Rev": "feeb485667d1fdabe727840fe00adc22431bc86e"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "9ccfe848b9db8435a24c424abbc07a921adf1df5"
+		},
+		{
+			"ImportPath": "gopkg.in/go-playground/validator.v8",
+			"Comment": "v8.18.1",
+			"Rev": "5f57d2222ad794d0dffb07e664ea05e2ee07d60c"
+		},
+		{
+			"ImportPath": "gopkg.in/yaml.v2",
+			"Rev": "cd8b52f8269e0feb286dfeef29f8fe4d5b397e0b"
+		}
+	]
+}
