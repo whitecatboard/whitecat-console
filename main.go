@@ -61,6 +61,22 @@ func usage() {
 	fmt.Println("")
 }
 
+
+// posString returns the first index of element in slice.
+// If slice does not contain element, returns -1.
+func posString(slice []string, element string) int {
+	for index, elem := range slice {
+		if elem == element {
+			return index
+		}
+	}
+	return -1
+}
+
+func containsString(slice []string, element string) bool {
+	return !(posString(slice, element) == -1)
+}
+
 func main() {
 	defer func() {
 		if connectedBoard != nil {
@@ -210,6 +226,74 @@ func main() {
 	// Connect board
 	connect(port)
 	
+	if connectedBoard == nil {
+		fmt.Println("Can't connect to any board at port " + port)
+		os.Exit(1)
+	}
+
+	connectedBoard.consoleOut = false
+	connectedBoard.consoleIn = true
+	connectedBoard.timeout(2000)
+	connectedBoard.model = connectedBoard.sendCommand("os.board()")
+	connectedBoard.noTimeout()
+	connectedBoard.consoleOut = true
+	connectedBoard.consoleIn = false	
+
+	if connectedBoard.model	== "" {
+		conf := ""
+		board := ""
+		okayResponses := []string{"y", "Y", "yes", "Yes", "YES"}
+		nokayResponses := []string{"n", "N", "no", "No", "NO"}
+		okayBoards := []string{"1","2","3","4"}
+		
+		fmt.Println("Unknown board model.")
+		fmt.Println("Maybe your firmware is corrupted, or you haven't a valid Lua RTOS firmware installed.")
+		
+		for {
+			fmt.Print("\nDo you want to install a valid firmware now [y/n])? ")
+		
+			_, err := fmt.Scanln(&conf)
+			if err == nil {
+				if containsString(okayResponses, conf) {
+					for {
+						fmt.Println("\nPlease, enter your board type:")
+						fmt.Println("  1: WHITECAT N1")
+						fmt.Println("  2: ESP32 CORE BOARD")
+						fmt.Println("  3: ESP32 THING")
+						fmt.Println("  4: GENERIC")
+						fmt.Println("")
+						fmt.Print("Type: ")
+						
+						_, err = fmt.Scanln(&board)
+						if err == nil {
+							if containsString(okayBoards, board) {
+								if (board == "1") {
+									connectedBoard.model = "N1ESP32"
+								} else if (board == "2") {
+									connectedBoard.model = "ESP32COREBOARD"
+								} else if (board == "3") {
+									connectedBoard.model = "ESP32THING"
+								} else if (board == "4") {
+									connectedBoard.model = "GENERIC"
+								}
+
+								fmt.Println("")
+								connectedBoard.upgrade()
+								notify("progress", "\nboard upgraded\r\n")								
+								
+								os.Exit(1)
+							}
+						}
+					}
+					os.Exit(1)
+				} else if containsString(nokayResponses, conf) {
+					os.Exit(1)
+				}			
+			}
+		
+		}		
+	}
+		
 	if ls {
 		connectedBoard.consoleOut = false
 		connectedBoard.consoleIn = true
@@ -234,15 +318,7 @@ func main() {
 		connectedBoard.writeFile(dst, file)
 		} else if flash {
 			newBuild := false
-			
-			connectedBoard.consoleOut = false
-			connectedBoard.consoleIn = true
-			connectedBoard.timeout(2000)
-			connectedBoard.model = connectedBoard.sendCommand("os.board()")
-			connectedBoard.noTimeout()
-			connectedBoard.consoleOut = true
-			connectedBoard.consoleIn = false	
-			
+					
 			connectedBoard.consoleOut = false
 			connectedBoard.consoleIn = true
 			connectedBoard.timeout(2000)

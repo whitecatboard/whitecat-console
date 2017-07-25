@@ -352,19 +352,28 @@ func (board *Board) consume() {
 
 // Wait until board is ready
 func (board *Board) waitForReady() bool {
+	defer func() {
+		board.noTimeout()
+
+		if err := recover(); err != nil {
+		}
+	}()
+	
 	booting := false
 	whitecat := false
 	line := ""
 
-	log.Println("waiting fot ready ...")
+	log.Println("waiting for ready ...")
 
 	for {
 		select {
 		case <-time.After(time.Millisecond * 2000):
 			panic(errors.New("timeout"))
 		default:
+			board.timeout(4000)
 			line = board.readLineCRLF()
-
+			board.noTimeout()
+			
 			if regexp.MustCompile(`^.*boot: Failed to verify app image.*$`).MatchString(line) {
 				notify("boardUpdate", "Corrupted firmware")
 				return false
@@ -479,7 +488,10 @@ func (board *Board) reset(prerequisites bool) {
 	options.RTS = serial.RTS_OFF
 	board.port.Apply(&options)
 
-	board.waitForReady()
+	if !board.waitForReady() {
+		return
+	}
+	
 	board.consume()
 
 	log.Println("board is ready ...")
