@@ -67,7 +67,7 @@ Download system.lua file and store it as s.lua in your computer
 ./wcc -p /dev/tty.SLAB_USBtoUART -down system.lua s.lua
 ```
 
-Upload slua file and store it as system.lua in your board
+Upload s.lua file and store it as system.lua in your board
 ```lua
 ./wcc -p /dev/tty.SLAB_USBtoUART -up s.lua system.lua
 ```
