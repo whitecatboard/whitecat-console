@@ -50,7 +50,7 @@ var AppDataTmpFolder string = "/tmp"
 var AppFileName = ""
 
 func usage() {
-	fmt.Println("wcc: usage: wccagent -p port [-ls path | -down source destination | -up source destination | -f | -d]")
+	fmt.Println("usage: wcc -p port [-ls path | -down source destination | -up source destination | -f | -d]")
 	fmt.Println("")
 	fmt.Println("-p port:\t serial port device, for example /dev/tty.SLAB_USBtoUART")
 	fmt.Println("-ls path:\t list files present in path")
