@@ -34,8 +34,8 @@ import (
 	"github.com/kardianos/osext"
 	"io/ioutil"
 	"log"
-	"os"
 	"net/http"
+	"os"
 	"os/user"
 	"path"
 	"runtime"
@@ -60,7 +60,6 @@ func usage() {
 	fmt.Println("-d:\t\t show debug messages")
 	fmt.Println("")
 }
-
 
 // posString returns the first index of element in slice.
 // If slice does not contain element, returns -1.
@@ -127,12 +126,12 @@ func main() {
 			nextIsPort = false
 			continue
 		}
-		
+
 		switch arg {
 		case "-p":
 			port = arg
 			nextIsPort = true
-			
+
 		case "-ls":
 			ls = true
 			nextIsDir = true
@@ -144,13 +143,13 @@ func main() {
 		case "-up":
 			up = true
 			nextIsSrc = true
-			
+
 		case "-d":
 			dbg = true
 
 		case "-f":
 			flash = true
-		
+
 		default:
 			if i > 0 {
 				ok = false
@@ -159,8 +158,8 @@ func main() {
 
 		i = i + 1
 	}
-	
-	if !up && !down && !ls && !flash {
+
+	if (!up && !down && !ls && !flash) || (port == "") {
 		ok = false
 	}
 
@@ -222,10 +221,9 @@ func main() {
 			os.Exit(1)
 		}
 	}
-	
+
 	// Connect board
 	connect(port)
-	
 	if connectedBoard == nil {
 		fmt.Println("Can't connect to any board at port " + port)
 		os.Exit(1)
@@ -237,21 +235,21 @@ func main() {
 	connectedBoard.model = connectedBoard.sendCommand("os.board()")
 	connectedBoard.noTimeout()
 	connectedBoard.consoleOut = true
-	connectedBoard.consoleIn = false	
+	connectedBoard.consoleIn = false
 
-	if connectedBoard.model	== "" {
+	if connectedBoard.model == "" {
 		conf := ""
 		board := ""
 		okayResponses := []string{"y", "Y", "yes", "Yes", "YES"}
 		nokayResponses := []string{"n", "N", "no", "No", "NO"}
-		okayBoards := []string{"1","2","3","4"}
-		
+		okayBoards := []string{"1", "2", "3", "4"}
+
 		fmt.Println("Unknown board model.")
 		fmt.Println("Maybe your firmware is corrupted, or you haven't a valid Lua RTOS firmware installed.")
-		
+
 		for {
 			fmt.Print("\nDo you want to install a valid firmware now [y/n])? ")
-		
+
 			_, err := fmt.Scanln(&conf)
 			if err == nil {
 				if containsString(okayResponses, conf) {
@@ -263,24 +261,24 @@ func main() {
 						fmt.Println("  4: GENERIC")
 						fmt.Println("")
 						fmt.Print("Type: ")
-						
+
 						_, err = fmt.Scanln(&board)
 						if err == nil {
 							if containsString(okayBoards, board) {
-								if (board == "1") {
+								if board == "1" {
 									connectedBoard.model = "N1ESP32"
-								} else if (board == "2") {
+								} else if board == "2" {
 									connectedBoard.model = "ESP32COREBOARD"
-								} else if (board == "3") {
+								} else if board == "3" {
 									connectedBoard.model = "ESP32THING"
-								} else if (board == "4") {
+								} else if board == "4" {
 									connectedBoard.model = "GENERIC"
 								}
 
 								fmt.Println("")
 								connectedBoard.upgrade()
-								notify("progress", "\nboard upgraded\r\n")								
-								
+								notify("progress", "\nboard upgraded\r\n")
+
 								os.Exit(1)
 							}
 						}
@@ -288,24 +286,24 @@ func main() {
 					os.Exit(1)
 				} else if containsString(nokayResponses, conf) {
 					os.Exit(1)
-				}			
+				}
 			}
-		
-		}		
+
+		}
 	}
-		
+
 	if ls {
 		connectedBoard.consoleOut = false
 		connectedBoard.consoleIn = true
 		connectedBoard.timeout(2000)
-		response = connectedBoard.sendCommand("os.ls(\""+ dir + "\")")
+		response = connectedBoard.sendCommand("os.ls(\"" + dir + "\")")
 		connectedBoard.noTimeout()
 		connectedBoard.consoleOut = true
-		connectedBoard.consoleIn = false		
+		connectedBoard.consoleIn = false
 		fmt.Println(response)
 	} else if down {
 		file := connectedBoard.readFile(src)
-		err := ioutil.WriteFile(src, file, 0755)
+		err := ioutil.WriteFile(dst, file, 0755)
 		if err != nil {
 			panic(err)
 		}
@@ -316,41 +314,41 @@ func main() {
 		}
 
 		connectedBoard.writeFile(dst, file)
-		} else if flash {
-			newBuild := false
-					
-			connectedBoard.consoleOut = false
-			connectedBoard.consoleIn = true
-			connectedBoard.timeout(2000)
-			commit := connectedBoard.sendCommand("do local commit; _, _, _, commit = os.version();print(commit);end")
-			connectedBoard.noTimeout()
-			connectedBoard.consoleOut = true
-			connectedBoard.consoleIn = false	
-			
-			// Test for a new firmware version
-			resp, err := http.Get("http://whitecatboard.org/lastbuild.php?board=" + connectedBoard.model + "&commit=1")
-			if err == nil {
-				body, err := ioutil.ReadAll(resp.Body)
-				if err == nil {
-					lastCommit := string(body)
+	} else if flash {
+		newBuild := false
 
-					if commit != lastCommit {
-						newBuild = true
-						notify("progress", "new firmware available " + commit + "\r\n")
-					} else {
-						notify("progress", "board is updated " + commit + "\r\n")
-					}
+		connectedBoard.consoleOut = false
+		connectedBoard.consoleIn = true
+		connectedBoard.timeout(2000)
+		commit := connectedBoard.sendCommand("do local commit; _, _, _, commit = os.version();print(commit);end")
+		connectedBoard.noTimeout()
+		connectedBoard.consoleOut = true
+		connectedBoard.consoleIn = false
+
+		// Test for a new firmware version
+		resp, err := http.Get("http://whitecatboard.org/lastbuild.php?board=" + connectedBoard.model + "&commit=1")
+		if err == nil {
+			body, err := ioutil.ReadAll(resp.Body)
+			if err == nil {
+				lastCommit := string(body)
+
+				if commit != lastCommit {
+					newBuild = true
+					notify("progress", "new firmware available "+commit+"\r\n")
 				} else {
-					panic(err)
+					notify("progress", "board is updated "+commit+"\r\n")
 				}
 			} else {
 				panic(err)
 			}
-			
-			if newBuild {
-				connectedBoard.upgrade()
-				notify("progress", "\nboard upgraded to " + commit + "\r\n")
-			}
-						
+		} else {
+			panic(err)
 		}
+
+		if newBuild {
+			connectedBoard.upgrade()
+			notify("progress", "\nboard upgraded to "+commit+"\r\n")
+		}
+
+	}
 }

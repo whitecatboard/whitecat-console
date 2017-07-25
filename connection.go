@@ -56,11 +56,16 @@ func connect(port string) {
 	go console()
 
 	// Open port
-	info, _ := serial.PortByName(port)	
-	
+	info, err := serial.PortByName(port)
+	if err != nil {
+		return
+	}
+
 	// Create a candidate board
 	var candidate Board
 
 	// Attach candidate
 	candidate.attach(info, false)
+
+	return
 }

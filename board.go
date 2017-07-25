@@ -44,10 +44,10 @@ import (
 	"os/exec"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
-	"strconv"
 )
 
 var Upgrading bool
@@ -78,7 +78,7 @@ type Board struct {
 	disableInspectorBootNotify bool
 
 	consoleOut bool
-	consoleIn bool
+	consoleIn  bool
 
 	quit chan bool
 
@@ -170,7 +170,7 @@ func (board *Board) inspector() {
 					tmpLine := line
 					re = regexp.MustCompile(`^/.*>\s`)
 					tmpLine = string(re.ReplaceAll([]byte(tmpLine), []byte("")))
-					
+
 					re = regexp.MustCompile(`^([\/\.\/\-_a-zA-Z]*):(\d*)\:\s(\d*)\:(.*)$`)
 					if re.MatchString(tmpLine) {
 						parts := re.FindStringSubmatch(tmpLine)
@@ -179,8 +179,8 @@ func (board *Board) inspector() {
 							"\"line\": \"" + parts[2] + "\", " +
 							"\"exception\": \"" + parts[3] + "\", " +
 							"\"message\": \"" + base64.StdEncoding.EncodeToString([]byte(parts[4])) + "\""
-							log.Println(parts[4])
-							
+						log.Println(parts[4])
+
 						re = regexp.MustCompile(`^WARNING\s.*$`)
 						if re.MatchString(parts[4]) {
 							notify("boardRuntimeWarning", info)
@@ -275,7 +275,7 @@ func (board *Board) detach() {
 	log.Println("detaching board ...")
 
 	// Close board
-	if board != nil {
+	if connectedBoard != nil {
 		log.Println("closing serial port ...")
 
 		// Close serial port
@@ -358,7 +358,7 @@ func (board *Board) waitForReady() bool {
 		if err := recover(); err != nil {
 		}
 	}()
-	
+
 	booting := false
 	whitecat := false
 	line := ""
@@ -373,7 +373,7 @@ func (board *Board) waitForReady() bool {
 			board.timeout(4000)
 			line = board.readLineCRLF()
 			board.noTimeout()
-			
+
 			if regexp.MustCompile(`^.*boot: Failed to verify app image.*$`).MatchString(line) {
 				notify("boardUpdate", "Corrupted firmware")
 				return false
@@ -491,7 +491,7 @@ func (board *Board) reset(prerequisites bool) {
 	if !board.waitForReady() {
 		return
 	}
-	
+
 	board.consume()
 
 	log.Println("board is ready ...")
@@ -652,7 +652,7 @@ func (board *Board) writeFile(path string, buffer []byte) string {
 		board.noTimeout()
 		board.consoleOut = true
 		board.consoleIn = false
-		
+
 		if err := recover(); err != nil {
 		}
 	}()
@@ -660,15 +660,15 @@ func (board *Board) writeFile(path string, buffer []byte) string {
 	board.timeout(2000)
 	board.consoleOut = false
 	board.consoleIn = true
-	
+
 	writeCommand := "io.receive(\"" + path + "\")"
 
 	outLen := 0
 	outIndex := 0
 
 	board.consume()
-	
-	notify("progress", "\033[K" + strconv.Itoa(outIndex) + " of " + strconv.Itoa(len(buffer)) + " bytes sended ...\r")
+
+	notify("progress", "\033[K"+strconv.Itoa(outIndex)+" of "+strconv.Itoa(len(buffer))+" bytes sended ...\r")
 
 	// Send command and test for echo
 	board.port.Write([]byte(writeCommand + "\r"))
@@ -687,11 +687,11 @@ func (board *Board) writeFile(path string, buffer []byte) string {
 					outLen = 0
 				}
 
-				notify("progress", "\033[K" + strconv.Itoa(outIndex + outLen) + " of " + strconv.Itoa(len(buffer)) + " bytes sended ...\r")
+				notify("progress", "\033[K"+strconv.Itoa(outIndex+outLen)+" of "+strconv.Itoa(len(buffer))+" bytes sended ...\r")
 
 				// Send chunk length
 				board.port.Write([]byte{byte(outLen)})
-				
+
 				if outLen > 0 {
 					// Send chunk
 					board.port.Write(buffer[outIndex : outIndex+outLen])
@@ -707,7 +707,7 @@ func (board *Board) writeFile(path string, buffer []byte) string {
 			board.consume()
 
 			notify("progress", "\n\033[Kfile sended\r\n")
-			
+
 			return "ok"
 		}
 	}
@@ -779,12 +779,12 @@ func (board *Board) readFile(path string) []byte {
 	board.consoleIn = true
 
 	received = 0
-	
+
 	// Command for read file
 	readCommand := "io.send(\"" + path + "\")"
-	
-	notify("progress", "\033[K" + strconv.Itoa(received) + " bytes received ...\r")
-	
+
+	notify("progress", "\033[K"+strconv.Itoa(received)+" bytes received ...\r")
+
 	// Send command and test for echo
 	board.port.Write([]byte(readCommand + "\r"))
 	if board.readLineCRLF() == readCommand {
@@ -808,7 +808,7 @@ func (board *Board) readFile(path string) []byte {
 				break
 			}
 
-			notify("progress", "\033[K" + strconv.Itoa(received) + " bytes received ...\r")
+			notify("progress", "\033[K"+strconv.Itoa(received)+" bytes received ...\r")
 		}
 
 		board.consume()
@@ -918,9 +918,9 @@ func (board *Board) upgrade() {
 		boardName = "ESP32-THING"
 	}
 
-	flash_args = strings.Replace(flash_args, "bootloader."+boardName+".bin", "\"" + AppDataTmpFolder+"/firmware_files/bootloader."+boardName+".bin\"", -1)
-	flash_args = strings.Replace(flash_args, "lua_rtos."+boardName+".bin", "\"" + AppDataTmpFolder+"/firmware_files/lua_rtos."+boardName+".bin\"", -1)
-	flash_args = strings.Replace(flash_args, "partitions_singleapp."+boardName+".bin", "\"" + AppDataTmpFolder+"/firmware_files/partitions_singleapp."+boardName+".bin\"", -1)
+	flash_args = strings.Replace(flash_args, "bootloader."+boardName+".bin", "\""+AppDataTmpFolder+"/firmware_files/bootloader."+boardName+".bin\"", -1)
+	flash_args = strings.Replace(flash_args, "lua_rtos."+boardName+".bin", "\""+AppDataTmpFolder+"/firmware_files/lua_rtos."+boardName+".bin\"", -1)
+	flash_args = strings.Replace(flash_args, "partitions_singleapp."+boardName+".bin", "\""+AppDataTmpFolder+"/firmware_files/partitions_singleapp."+boardName+".bin\"", -1)
 
 	// Add usb port to flash arguments
 	flash_args = "--port " + board.dev + " " + flash_args
@@ -930,21 +930,21 @@ func (board *Board) upgrade() {
 	// Build the flash command
 	cmdArgs := regexp.MustCompile(`'.*?'|".*?"|\S+`).FindAllString(flash_args, -1)
 
-	for i,_ := range cmdArgs {
-        cmdArgs[i] = strings.Replace(cmdArgs[i], "\"","", -1)
+	for i, _ := range cmdArgs {
+		cmdArgs[i] = strings.Replace(cmdArgs[i], "\"", "", -1)
 	}
-		
+
 	// Prepare for execution
 	cmd := exec.Command(AppDataTmpFolder+"/utils/esptool/esptool", cmdArgs...)
 
-	log.Println("executing: ", "\"" + AppDataTmpFolder+"/utils/esptool/esptool\"")
+	log.Println("executing: ", "\""+AppDataTmpFolder+"/utils/esptool/esptool\"")
 
 	// We need to read command stdout for show the progress in the IDE
 	stdout, _ := cmd.StdoutPipe()
-	
+
 	// Start
 	cmd.Start()
-	
+
 	// Read stdout until EOF
 	c := make([]byte, 1)
 	for {
