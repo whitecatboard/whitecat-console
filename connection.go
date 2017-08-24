@@ -67,10 +67,16 @@ func connect(port string) {
 
 	// Attach candidate
 	candidate.attach(info, false)
+	
+	if err := recover(); err != nil {
+		log.Println("eeeeeee ", err)
+	}
 
 	if connectedBoard != nil {
-		connectedBoard.port.Write([]byte("os.shell(false)\r\n"))
-		connectedBoard.consume()
+		if (connectedBoard.validFirmware) {
+			connectedBoard.port.Write([]byte("os.shell(false)\r\n"))
+			connectedBoard.consume()
+		}
 	}
 	
 	return

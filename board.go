@@ -84,6 +84,9 @@ type Board struct {
 
 	// Current timeout value, in milliseconds for read
 	timeoutVal int
+
+	// Firmware is valid?
+	validFirmware bool
 }
 
 type BoardInfo struct {
@@ -259,6 +262,7 @@ func (board *Board) attach(info *serial.Info, prerequisites bool) {
 	board.consoleIn = false
 	board.quit = make(chan bool)
 	board.timeoutVal = math.MaxInt32
+	board.validFirmware = true
 
 	Upgrading = false
 
@@ -376,12 +380,14 @@ func (board *Board) waitForReady() bool {
 
 			if regexp.MustCompile(`^.*boot: Failed to verify app image.*$`).MatchString(line) {
 				notify("boardUpdate", "Corrupted firmware")
-				return false
+				board.validFirmware = false
+				return true
 			}
 
 			if regexp.MustCompile(`^Falling back to built-in command interpreter.$`).MatchString(line) {
 				notify("boardUpdate", "Flash error")
-				return false
+				board.validFirmware = false
+				return true
 			}
 
 			if !booting {

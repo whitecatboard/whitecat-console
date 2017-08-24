@@ -245,15 +245,19 @@ func main() {
 		list_ports()
 		os.Exit(1)
 	}
-
-	connectedBoard.consoleOut = false
-	connectedBoard.consoleIn = true
-	connectedBoard.timeout(2000)
-	connectedBoard.model = connectedBoard.sendCommand("os.board()")
-	connectedBoard.noTimeout()
-	connectedBoard.consoleOut = true
-	connectedBoard.consoleIn = false
-
+	
+	if (connectedBoard.validFirmware) {
+		connectedBoard.consoleOut = false
+		connectedBoard.consoleIn = true
+		connectedBoard.timeout(2000)
+		connectedBoard.model = connectedBoard.sendCommand("os.board()")
+		connectedBoard.noTimeout()
+		connectedBoard.consoleOut = true
+		connectedBoard.consoleIn = false
+	} else {
+		connectedBoard.noTimeout()
+	}
+	
 	if connectedBoard.model == "" {
 		conf := ""
 		board := ""
