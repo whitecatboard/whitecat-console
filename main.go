@@ -225,7 +225,9 @@ func main() {
 	// Connect board
 	connect(port)
 	if connectedBoard == nil {
-		fmt.Println("Can't connect to any board at port " + port)
+		fmt.Println("Can't connect to any board at port " + port + ".\r\n")
+		fmt.Println("Available serial ports on your computer:\r\n")
+		list_ports()
 		os.Exit(1)
 	}
 

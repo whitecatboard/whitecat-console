@@ -1,3 +1,3 @@
-go build -ldflags="-H windowsgui"
+go build
 cp whitecat-console.exe wcc.exe
 del whitecat-console.exe

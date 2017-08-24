@@ -30,6 +30,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/mikepb/go-serial"
 	"log"
 )
@@ -68,4 +69,16 @@ func connect(port string) {
 	candidate.attach(info, false)
 
 	return
+}
+
+func list_ports() {
+	// Enumerate all serial ports
+	ports, err := serial.ListPorts()
+	if err != nil {
+		return
+	}
+	
+	for _, info := range ports {
+		fmt.Println(info.Name())
+	}
 }
