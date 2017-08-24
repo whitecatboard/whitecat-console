@@ -68,6 +68,9 @@ func connect(port string) {
 	// Attach candidate
 	candidate.attach(info, false)
 
+	connectedBoard.port.Write([]byte("os.shell(false)\r\n"))
+	connectedBoard.consume()
+		
 	return
 }
 

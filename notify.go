@@ -31,6 +31,7 @@ package main
 
 import (
 	"fmt"
+	"runtime"
 )
 
 /*
@@ -43,6 +44,10 @@ func notify(notification string, data string) {
 	if (notification == "progress") {
 		fmt.Print(data)
 	} else if(notification == "boardUpdate") {
-		fmt.Print("\033[K" + data + "\r")
+		if runtime.GOOS == "windows" {
+			fmt.Print("                                                                                                                        \r" + data + "\r")
+		} else {
+			fmt.Print("\033[K" + data + "\r")
+		}
 	}
 }

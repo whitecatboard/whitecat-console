@@ -50,16 +50,20 @@ var AppDataTmpFolder string = "/tmp"
 var AppFileName = ""
 
 func usage() {
-	fmt.Println("usage: wcc -p port [-ls path | -down source destination | -up source destination | -f | -d]")
-	fmt.Println("")
-	fmt.Println("-ports:\t list all available serial ports on your computer")
-	fmt.Println("-p port:\t serial port device, for example /dev/tty.SLAB_USBtoUART")
+	fmt.Println("usage: wcc -p port | -ports [-ls path | -down source destination | -up source destination | -f | -d]\r\n")
+	fmt.Println("-ports:\t\t list all available serial ports on your computer")
+	
+	if runtime.GOOS == "windows" {
+		fmt.Println("-p port:\t serial port, for example COM2")
+	} else {
+		fmt.Println("-p port:\t serial port device, for example /dev/tty.SLAB_USBtoUART")
+	}
+		
 	fmt.Println("-ls path:\t list files present in path")
 	fmt.Println("-down src dst:\t transfer the source file (board) to destination file (computer)")
 	fmt.Println("-up src dst:\t transfer the source file (computer) to destination file (board)")
 	fmt.Println("-f:\t\t flash board with last firmware")
-	fmt.Println("-d:\t\t show debug messages")
-	fmt.Println("")
+	fmt.Println("-d:\t\t show debug messages\r\n")
 }
 
 // posString returns the first index of element in slice.
@@ -271,8 +275,7 @@ func main() {
 						fmt.Println("  1: WHITECAT N1")
 						fmt.Println("  2: ESP32 CORE BOARD")
 						fmt.Println("  3: ESP32 THING")
-						fmt.Println("  4: GENERIC")
-						fmt.Println("")
+						fmt.Println("  4: GENERIC\r\n")
 						fmt.Print("Type: ")
 
 						_, err = fmt.Scanln(&board)
@@ -288,9 +291,9 @@ func main() {
 									connectedBoard.model = "GENERIC"
 								}
 
-								fmt.Println("")
+								fmt.Print("\r\n")
 								connectedBoard.upgrade()
-								notify("progress", "\nboard upgraded\r\n")
+								notify("progress", "\r\nboard upgraded\r\n")
 
 								os.Exit(1)
 							}
@@ -337,13 +340,17 @@ func main() {
 		connectedBoard.noTimeout()
 		connectedBoard.consoleOut = true
 		connectedBoard.consoleIn = false
-
+		lastCommit := ""
+		
 		// Test for a new firmware version
 		resp, err := http.Get("http://whitecatboard.org/lastbuild.php?board=" + connectedBoard.model + "&commit=1")
 		if err == nil {
 			body, err := ioutil.ReadAll(resp.Body)
 			if err == nil {
-				lastCommit := string(body)
+				lastCommit = string(body)
+
+				log.Println("current commit ", commit)
+				log.Println("last commit ", lastCommit)
 
 				if commit != lastCommit {
 					newBuild = true
@@ -360,7 +367,7 @@ func main() {
 
 		if newBuild {
 			connectedBoard.upgrade()
-			notify("progress", "\nboard upgraded to "+commit+"\r\n")
+			notify("progress", "\nboard upgraded to "+lastCommit+"\r\n")
 		}
 	}
 }
