@@ -52,6 +52,7 @@ var AppFileName = ""
 func usage() {
 	fmt.Println("usage: wcc -p port [-ls path | -down source destination | -up source destination | -f | -d]")
 	fmt.Println("")
+	fmt.Println("-ports:\t list all available serial ports on your computer")
 	fmt.Println("-p port:\t serial port device, for example /dev/tty.SLAB_USBtoUART")
 	fmt.Println("-ls path:\t list files present in path")
 	fmt.Println("-down src dst:\t transfer the source file (board) to destination file (computer)")
@@ -84,6 +85,7 @@ func main() {
 	}()
 
 	port := ""
+	ports := false
 	dbg := false
 	ok := true
 	i := 0
@@ -149,6 +151,9 @@ func main() {
 
 		case "-f":
 			flash = true
+			
+		case "-ports":
+			ports = true
 
 		default:
 			if i > 0 {
@@ -157,6 +162,12 @@ func main() {
 		}
 
 		i = i + 1
+	}
+	
+	if (ports) {
+		fmt.Println("Available serial ports on your computer:\r\n")
+		list_ports()
+		os.Exit(1)
 	}
 
 	if (!up && !down && !ls && !flash) || (port == "") {
@@ -351,6 +362,5 @@ func main() {
 			connectedBoard.upgrade()
 			notify("progress", "\nboard upgraded to "+commit+"\r\n")
 		}
-
 	}
 }
