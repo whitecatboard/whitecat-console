@@ -879,7 +879,7 @@ func exec_cmd(cmd string, wg *sync.WaitGroup) {
 	wg.Done()
 }
 
-func (board *Board) upgrade() {
+func (board *Board) upgrade(flash bool, flashFS bool) {
 	var boardName string
 	var out string = ""
 
@@ -906,17 +906,6 @@ func (board *Board) upgrade() {
 		return
 	}
 
-	// Read flash arguments
-	b, err := ioutil.ReadFile(AppDataTmpFolder + "/firmware_files/flash_args")
-	if err != nil {
-		notify("boardUpdate", err.Error())
-		time.Sleep(time.Millisecond * 1000)
-		Upgrading = false
-		return
-	}
-
-	flash_args := string(b)
-
 	// Get the board name part of the firmware files for
 	// current board model
 	if board.model == "N1ESP32" {
@@ -927,54 +916,131 @@ func (board *Board) upgrade() {
 		boardName = "ESP32-THING"
 	}
 
-	flash_args = strings.Replace(flash_args, "bootloader."+boardName+".bin", "\""+AppDataTmpFolder+"/firmware_files/bootloader."+boardName+".bin\"", -1)
-	flash_args = strings.Replace(flash_args, "lua_rtos."+boardName+".bin", "\""+AppDataTmpFolder+"/firmware_files/lua_rtos."+boardName+".bin\"", -1)
-	flash_args = strings.Replace(flash_args, "partitions_singleapp."+boardName+".bin", "\""+AppDataTmpFolder+"/firmware_files/partitions_singleapp."+boardName+".bin\"", -1)
+	if flash {
+		notify("progress", "Flasing last firmware\r\n")
 
-	// Add usb port to flash arguments
-	flash_args = "--port " + board.dev + " " + flash_args
-
-	log.Println("flash args: ", flash_args)
-
-	// Build the flash command
-	cmdArgs := regexp.MustCompile(`'.*?'|".*?"|\S+`).FindAllString(flash_args, -1)
-
-	for i, _ := range cmdArgs {
-		cmdArgs[i] = strings.Replace(cmdArgs[i], "\"", "", -1)
-	}
-
-	// Prepare for execution
-	cmd := exec.Command(AppDataTmpFolder+"/utils/esptool/esptool", cmdArgs...)
-
-	log.Println("executing: ", "\""+AppDataTmpFolder+"/utils/esptool/esptool\"")
-
-	// We need to read command stdout for show the progress in the IDE
-	stdout, _ := cmd.StdoutPipe()
-
-	// Start
-	cmd.Start()
-
-	// Read stdout until EOF
-	c := make([]byte, 1)
-	for {
-		_, err := stdout.Read(c)
+		// Read flash arguments
+		b, err := ioutil.ReadFile(AppDataTmpFolder + "/firmware_files/flash_args")
 		if err != nil {
-			break
+			notify("boardUpdate", err.Error())
+			time.Sleep(time.Millisecond * 1000)
+			Upgrading = false
+			return
 		}
 
-		if c[0] == '\r' || c[0] == '\n' {
-			out = strings.Replace(out, "...", "", -1)
-			if out != "" {
-				notify("boardUpdate", out)
+		flash_args := string(b)
+
+		flash_args = strings.Replace(flash_args, "bootloader."+boardName+".bin", "\""+AppDataTmpFolder+"/firmware_files/bootloader."+boardName+".bin\"", -1)
+		flash_args = strings.Replace(flash_args, "lua_rtos."+boardName+".bin", "\""+AppDataTmpFolder+"/firmware_files/lua_rtos."+boardName+".bin\"", -1)
+		flash_args = strings.Replace(flash_args, "partitions_singleapp."+boardName+".bin", "\""+AppDataTmpFolder+"/firmware_files/partitions_singleapp."+boardName+".bin\"", -1)
+
+		// Add usb port to flash arguments
+		flash_args = "--port " + board.dev + " " + flash_args
+
+		log.Println("flash args: ", flash_args)
+
+		// Build the flash command
+		cmdArgs := regexp.MustCompile(`'.*?'|".*?"|\S+`).FindAllString(flash_args, -1)
+
+		for i, _ := range cmdArgs {
+			cmdArgs[i] = strings.Replace(cmdArgs[i], "\"", "", -1)
+		}
+
+		// Prepare for execution
+		cmd := exec.Command(AppDataTmpFolder+"/utils/esptool/esptool", cmdArgs...)
+
+		log.Println("executing: ", "\""+AppDataTmpFolder+"/utils/esptool/esptool\"")
+
+		// We need to read command stdout for show the progress in the IDE
+		stdout, _ := cmd.StdoutPipe()
+
+		// Start
+		cmd.Start()
+
+		// Read stdout until EOF
+		c := make([]byte, 1)
+		for {
+			_, err := stdout.Read(c)
+			if err != nil {
+				break
 			}
-			out = ""
-		} else {
-			out = out + string(c)
+
+			if c[0] == '\r' || c[0] == '\n' {
+				out = strings.Replace(out, "...", "", -1)
+				if out != "" {
+					notify("boardUpdate", out)
+				}
+				out = ""
+			} else {
+				out = out + string(c)
+			}
+
 		}
 
+		log.Println("Upgraded")
 	}
 
-	log.Println("Upgraded")
+	if flashFS {
+		notify("progress", "Flasing last file system\r\n")
+
+		// Read flash arguments
+		b, err := ioutil.ReadFile(AppDataTmpFolder + "/firmware_files/flashfs_args")
+		if err != nil {
+			notify("boardUpdate", err.Error())
+			time.Sleep(time.Millisecond * 1000)
+			Upgrading = false
+			return
+		}
+
+		flash_args := string(b)
+
+		flash_args = strings.Replace(flash_args, "spiffs_image."+boardName+".bin", "\""+AppDataTmpFolder+"/firmware_files/spiffs_image."+boardName+".bin\"", -1)
+
+		// Add usb port to flash arguments
+		flash_args = "--port " + board.dev + " " + flash_args
+
+		log.Println("flash args: ", flash_args)
+
+		// Build the flash command
+		cmdArgs := regexp.MustCompile(`'.*?'|".*?"|\S+`).FindAllString(flash_args, -1)
+
+		for i, _ := range cmdArgs {
+			cmdArgs[i] = strings.Replace(cmdArgs[i], "\"", "", -1)
+		}
+
+		// Prepare for execution
+		cmd := exec.Command(AppDataTmpFolder+"/utils/esptool/esptool", cmdArgs...)
+
+		log.Println("executing: ", "\""+AppDataTmpFolder+"/utils/esptool/esptool\"")
+
+		// We need to read command stdout for show the progress in the IDE
+		stdout, _ := cmd.StdoutPipe()
+
+		// Start
+		cmd.Start()
+
+		// Read stdout until EOF
+		c := make([]byte, 1)
+		for {
+			_, err := stdout.Read(c)
+			if err != nil {
+				break
+			}
+
+			if c[0] == '\r' || c[0] == '\n' {
+				out = strings.Replace(out, "...", "", -1)
+				if out != "" {
+					notify("boardUpdate", out)
+				}
+				out = ""
+			} else {
+				out = out + string(c)
+			}
+
+		}
+
+		log.Println("Upgraded")
+	}
 
 	time.Sleep(time.Millisecond * 1000)
 	Upgrading = false

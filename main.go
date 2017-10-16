@@ -50,19 +50,20 @@ var AppDataTmpFolder string = "/tmp"
 var AppFileName = ""
 
 func usage() {
-	fmt.Println("usage: wcc -p port | -ports [-ls path | -down source destination | -up source destination | -f | -d]\r\n")
+	fmt.Println("usage: wcc -p port | -ports [-ls path | -down source destination | -up source destination | -f | -ffs | -d]\r\n")
 	fmt.Println("-ports:\t\t list all available serial ports on your computer")
-	
+
 	if runtime.GOOS == "windows" {
 		fmt.Println("-p port:\t serial port, for example COM2")
 	} else {
 		fmt.Println("-p port:\t serial port device, for example /dev/tty.SLAB_USBtoUART")
 	}
-		
+
 	fmt.Println("-ls path:\t list files present in path")
 	fmt.Println("-down src dst:\t transfer the source file (board) to destination file (computer)")
 	fmt.Println("-up src dst:\t transfer the source file (computer) to destination file (board)")
 	fmt.Println("-f:\t\t flash board with last firmware")
+	fmt.Println("-ffs:\t\t flash board with last filesystem")
 	fmt.Println("-d:\t\t show debug messages\r\n")
 }
 
@@ -97,6 +98,7 @@ func main() {
 	down := false
 	up := false
 	flash := false
+	flashFS := false
 	nextIsPort := false
 	nextIsSrc := false
 	nextIsDst := false
@@ -155,7 +157,10 @@ func main() {
 
 		case "-f":
 			flash = true
-			
+
+		case "-ffs":
+			flashFS = true
+
 		case "-ports":
 			ports = true
 
@@ -167,14 +172,14 @@ func main() {
 
 		i = i + 1
 	}
-	
-	if (ports) {
+
+	if ports {
 		fmt.Println("Available serial ports on your computer:\r\n")
 		list_ports()
 		os.Exit(1)
 	}
 
-	if (!up && !down && !ls && !flash) || (port == "") {
+	if (!up && !down && !ls && !(flash || flashFS)) || (port == "") {
 		ok = false
 	}
 
@@ -245,8 +250,8 @@ func main() {
 		list_ports()
 		os.Exit(1)
 	}
-	
-	if (connectedBoard.validFirmware) {
+
+	if connectedBoard.validFirmware {
 		connectedBoard.consoleOut = false
 		connectedBoard.consoleIn = true
 		connectedBoard.timeout(2000)
@@ -257,7 +262,7 @@ func main() {
 	} else {
 		connectedBoard.noTimeout()
 	}
-	
+
 	if connectedBoard.model == "" {
 		conf := ""
 		board := ""
@@ -296,7 +301,7 @@ func main() {
 								}
 
 								fmt.Print("\r\n")
-								connectedBoard.upgrade()
+								connectedBoard.upgrade(true, flashFS)
 								notify("progress", "\r\nboard upgraded\r\n")
 
 								os.Exit(1)
@@ -334,7 +339,7 @@ func main() {
 		}
 
 		connectedBoard.writeFile(dst, file)
-	} else if flash {
+	} else if flash || flashFS {
 		newBuild := false
 
 		connectedBoard.consoleOut = false
@@ -345,7 +350,7 @@ func main() {
 		connectedBoard.consoleOut = true
 		connectedBoard.consoleIn = false
 		lastCommit := ""
-		
+
 		// Test for a new firmware version
 		resp, err := http.Get("http://whitecatboard.org/lastbuild.php?board=" + connectedBoard.model + "&commit=1")
 		if err == nil {
@@ -369,8 +374,8 @@ func main() {
 			panic(err)
 		}
 
-		if newBuild {
-			connectedBoard.upgrade()
+		if newBuild || flashFS {
+			connectedBoard.upgrade(newBuild && flash, flashFS)
 			notify("progress", "\nboard upgraded to "+lastCommit+"\r\n")
 		}
 	}
