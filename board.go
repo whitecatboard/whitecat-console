@@ -356,16 +356,19 @@ func (board *Board) consume() {
 
 // Wait until board is ready
 func (board *Board) waitForReady() bool {
+	booting := false
+	whitecat := false
+	line := ""
+
 	defer func() {
 		board.noTimeout()
 
 		if err := recover(); err != nil {
+			if booting {
+				board.validFirmware = false
+			}
 		}
 	}()
-
-	booting := false
-	whitecat := false
-	line := ""
 
 	log.Println("waiting for ready ...")
 
