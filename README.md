@@ -56,6 +56,7 @@ Please note you need probably to download and install drivers for your board's U
 
 # Usage
 
+```lua
 wcc -p port | -ports
        [-ls path | [-down source destination] |
        [-up source destination] | [-f | -ffs] | [-erase] | -d]
@@ -69,6 +70,7 @@ wcc -p port | -ports
 -ffs:		       flash board with last filesystem
 -erase:		    erase flash board
 -d:		       show debug messages
+```
 
 # Examples
 
