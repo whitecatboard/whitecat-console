@@ -54,6 +54,21 @@ Please note you need probably to download and install drivers for your board's U
    | [ESP32 CORE](https://www.silabs.com/products/development-tools/software/usb-to-uart-bridge-vcp-drivers)  | 
    | [ESP32 THING](http://www.ftdichip.com/Drivers/VCP.htm)  | 
 
+# Usage
+
+wcc -p port | -ports
+       [-ls path | [-down source destination] |
+       [-up source destination] | [-f | -ffs] | [-erase] | -d]
+
+-ports:		    list all available serial ports on your computer
+-p port:	       serial port device, for example /dev/tty.SLAB_USBtoUART
+-ls path:	    list files present in path
+-down src dst:	 transfer the source file (board) to destination file (computer)
+-up src dst:	 transfer the source file (computer) to destination file (board)
+-f:		       flash board with last firmware
+-ffs:		       flash board with last filesystem
+-erase:		    erase flash board
+-d:		       show debug messages
 
 # Examples
 
@@ -75,4 +90,19 @@ Upload s.lua file and store it as system.lua in your board
 Upgrade the board with last available firmware
 ```lua
 ./wcc -p /dev/tty.SLAB_USBtoUART -f
+```
+
+Upgrade the board with last available firmware and last available filesystem
+```lua
+./wcc -p /dev/tty.SLAB_USBtoUART -f -fs
+```
+
+Upgrade the board with available filesystem
+```lua
+./wcc -p /dev/tty.SLAB_USBtoUART -fs
+```
+
+Erase the flash memory
+```lua
+./wcc -p /dev/tty.SLAB_USBtoUART -erase
 ```
