@@ -49,8 +49,11 @@ var AppDataFolder string = "/"
 var AppDataTmpFolder string = "/tmp"
 var AppFileName = ""
 
+var LastBuildURL = "http://whitecatboard.org/lastbuildv2.php"
+var FirmwareURL = "http://whitecatboard.org/firmwarev2.php"
+
 func usage() {
-	fmt.Println("usage: wcc -p port | -ports [-ls path | -down source destination | -up source destination | -f | -ffs | -d]\r\n")
+	fmt.Println("usage: wcc -p port | -ports [-ls path | [-down source destination] | [-up source destination] | [-f | -ffs] | [-erase] | -d]\r\n")
 	fmt.Println("-ports:\t\t list all available serial ports on your computer")
 
 	if runtime.GOOS == "windows" {
@@ -64,6 +67,7 @@ func usage() {
 	fmt.Println("-up src dst:\t transfer the source file (computer) to destination file (board)")
 	fmt.Println("-f:\t\t flash board with last firmware")
 	fmt.Println("-ffs:\t\t flash board with last filesystem")
+	fmt.Println("-erase:\t\t erase flash board")
 	fmt.Println("-d:\t\t show debug messages\r\n")
 }
 
@@ -103,6 +107,7 @@ func main() {
 	nextIsSrc := false
 	nextIsDst := false
 	nextIsDir := false
+	erase := false
 	src := ""
 	dst := ""
 	dir := ""
@@ -164,6 +169,9 @@ func main() {
 		case "-ports":
 			ports = true
 
+		case "-erase":
+			erase = true
+
 		default:
 			if i > 0 {
 				ok = false
@@ -179,7 +187,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	if (!up && !down && !ls && !(flash || flashFS)) || (port == "") {
+	if (!erase && !up && !down && !ls && !(flash || flashFS)) || (port == "") {
+		ok = false
+	}
+	
+	if (erase && (flash || flashFS)) {
 		ok = false
 	}
 
@@ -243,7 +255,7 @@ func main() {
 	}
 
 	// Connect board
-	connect(port)
+	connect(!erase,port)
 	if connectedBoard == nil {
 		fmt.Println("Can't connect to any board at port " + port + ".\r\n")
 		fmt.Println("Available serial ports on your computer:\r\n")
@@ -255,20 +267,36 @@ func main() {
 		connectedBoard.consoleOut = false
 		connectedBoard.consoleIn = true
 		connectedBoard.timeout(2000)
-		connectedBoard.model = connectedBoard.sendCommand("os.board()")
+		connectedBoard.model = connectedBoard.sendCommand("do local type = os.board();print(type); end")
+		connectedBoard.subtype = connectedBoard.sendCommand("do local _,subtype = os.board();if (not (subtype == nil)) then print(subtype); else print(\"\"); end end")
+		connectedBoard.brand = connectedBoard.sendCommand("do local _,_,brand = os.board();if (not (brand == nil)) then print(brand); else print(\"\"); end end")
 		connectedBoard.noTimeout()
 		connectedBoard.consoleOut = true
 		connectedBoard.consoleIn = false
+
+		firmware := ""
+
+		if (connectedBoard.brand != "") {
+			firmware = connectedBoard.brand + "-"
+		}
+
+		firmware = firmware + connectedBoard.model
+
+		if (connectedBoard.subtype != "") {
+			firmware = firmware + "-" + connectedBoard.subtype
+		}
+
+		connectedBoard.firmware = firmware	
 	} else {
 		connectedBoard.noTimeout()
 	}
 
-	if connectedBoard.model == "" {
+	if (connectedBoard.model == "") && !erase {
 		conf := ""
 		board := ""
 		okayResponses := []string{"y", "Y", "yes", "Yes", "YES"}
 		nokayResponses := []string{"n", "N", "no", "No", "NO"}
-		okayBoards := []string{"1", "2", "3", "4"}
+		okayBoards := []string{"1", "2", "3", "4", "5", "6", "7", "8"}
 
 		fmt.Println("Unknown board model.")
 		fmt.Println("Maybe your firmware is corrupted, or you haven't a valid Lua RTOS firmware installed.")
@@ -280,11 +308,18 @@ func main() {
 			if err == nil {
 				if containsString(okayResponses, conf) {
 					for {
+						connectedBoard.brand = ""
+						connectedBoard.subtype = ""
+
 						fmt.Println("\nPlease, enter your board type:")
 						fmt.Println("  1: WHITECAT N1")
-						fmt.Println("  2: ESP32 CORE BOARD")
-						fmt.Println("  3: ESP32 THING")
-						fmt.Println("  4: GENERIC\r\n")
+						fmt.Println("  2: WHITECAT N1 WITH OTA")
+						fmt.Println("  3: ESP32 CORE BOARD")
+						fmt.Println("  4: ESP32 CORE BOARD WITH OTA")
+						fmt.Println("  5: ESP32 THING")
+						fmt.Println("  6: ESP32 THING WITH OTA")
+						fmt.Println("  7: GENERIC")
+						fmt.Println("  8: GENERIC WITH OTA\r\n")
 						fmt.Print("Type: ")
 
 						_, err = fmt.Scanln(&board)
@@ -293,17 +328,43 @@ func main() {
 								if board == "1" {
 									connectedBoard.model = "N1ESP32"
 								} else if board == "2" {
-									connectedBoard.model = "ESP32COREBOARD"
+									connectedBoard.model = "N1ESP32"
+									connectedBoard.subtype = "OTA"
 								} else if board == "3" {
-									connectedBoard.model = "ESP32THING"
+									connectedBoard.model = "ESP32COREBOARD"
 								} else if board == "4" {
+									connectedBoard.model = "ESP32COREBOARD"
+									connectedBoard.subtype = "OTA"
+								} else if board == "5" {
+									connectedBoard.model = "ESP32THING"
+								} else if board == "6" {
+									connectedBoard.model = "ESP32THING"
+									connectedBoard.subtype = "OTA"
+								} else if board == "7" {
 									connectedBoard.model = "GENERIC"
+								} else if board == "8" {
+									connectedBoard.model = "GENERIC"
+									connectedBoard.subtype = "OTA"
 								}
 
-								fmt.Print("\r\n")
-								connectedBoard.upgrade(true, flashFS)
-								notify("progress", "\r\nboard upgraded\r\n")
+								firmware := ""
+		
+								if (connectedBoard.brand != "") {
+									firmware = connectedBoard.brand + "-"
+								}
+		
+								firmware = firmware + connectedBoard.model
 
+								if (connectedBoard.subtype != "") {
+									firmware = firmware + "-" + connectedBoard.subtype
+								}
+		
+								connectedBoard.firmware = firmware	
+
+								fmt.Print("\r\n")
+								connectedBoard.upgrade(false, true, flashFS)
+								notify("progress", "board upgraded\r\n")
+								
 								os.Exit(1)
 							}
 						}
@@ -350,9 +411,9 @@ func main() {
 		connectedBoard.consoleOut = true
 		connectedBoard.consoleIn = false
 		lastCommit := ""
-
+		
 		// Test for a new firmware version
-		resp, err := http.Get("http://whitecatboard.org/lastbuild.php?board=" + connectedBoard.model + "&commit=1")
+		resp, err := http.Get(LastBuildURL + "?firmware=" + connectedBoard.firmware)
 		if err == nil {
 			body, err := ioutil.ReadAll(resp.Body)
 			if err == nil {
@@ -361,7 +422,7 @@ func main() {
 				log.Println("current commit ", commit)
 				log.Println("last commit ", lastCommit)
 
-				if commit != lastCommit {
+				if (commit != lastCommit) && (lastCommit != "") {
 					newBuild = true
 					notify("progress", "new firmware available "+commit+"\r\n")
 				} else {
@@ -375,8 +436,11 @@ func main() {
 		}
 
 		if newBuild || flashFS {
-			connectedBoard.upgrade(newBuild && flash, flashFS)
-			notify("progress", "\nboard upgraded to "+lastCommit+"\r\n")
+			connectedBoard.upgrade(false, newBuild && flash, flashFS)
+			notify("progress", "board upgraded to "+lastCommit+"\r\n")
 		}
+	} else if (erase) {
+		connectedBoard.upgrade(true, false, false)
+		notify("progress", "Board erased           \r\n")
 	}
 }

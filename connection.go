@@ -49,7 +49,7 @@ func console() {
 	}
 }
 
-func connect(port string) {
+func connect(prerequisites bool, port string) {
 	log.Println("connecting to board on", port, "...")
 
 	ConsoleUp = make(chan byte, 1024)
@@ -66,10 +66,8 @@ func connect(port string) {
 	var candidate Board
 
 	// Attach candidate
-	candidate.attach(info, false)
-	
+	candidate.attach(info, prerequisites)	
 	if err := recover(); err != nil {
-		log.Println("eeeeeee ", err)
 	}
 
 	if connectedBoard != nil {

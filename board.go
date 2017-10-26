@@ -67,6 +67,10 @@ type Board struct {
 
 	// Board model
 	model string
+	subtype string
+	brand string
+	ota bool
+	firmware string
 
 	// RXQueue
 	RXQueue chan byte
@@ -90,9 +94,12 @@ type Board struct {
 }
 
 type BoardInfo struct {
-	Build  string
-	Commit string
-	Board  string
+	Build   string
+	Commit  string
+	Board   string
+	Subtype string
+	Brand   string
+	Ota     bool
 }
 
 func (board *Board) timeout(ms int) {
@@ -505,7 +512,7 @@ func (board *Board) reset(prerequisites bool) {
 
 	log.Println("board is ready ...")
 
-	if prerequisites {
+	if prerequisites && (connectedBoard != nil) {
 		notify("boardUpdate", "Downloading prerequisites")
 
 		// Clean
@@ -593,7 +600,7 @@ func (board *Board) reset(prerequisites bool) {
 		// Test for a newer software build
 		board.newBuild = false
 
-		resp, err = http.Get("http://whitecatboard.org/lastbuild.php?board=" + board.model + "&commit=1")
+		resp, err = http.Get(LastBuildURL + "?board=" + board.firmware)
 		if err == nil {
 			body, err := ioutil.ReadAll(resp.Body)
 			if err == nil {
@@ -612,6 +619,23 @@ func (board *Board) reset(prerequisites bool) {
 
 		board.info = info
 		board.model = boardInfo.Board
+		board.subtype = boardInfo.Subtype
+		board.brand = boardInfo.Brand
+		board.ota = boardInfo.Ota
+
+		firmware := ""
+		
+		if (board.brand != "") {
+			firmware = board.brand + "-"
+		}
+		
+		firmware = firmware + board.model
+
+		if (board.subtype != "") {
+			firmware = firmware + "-" + board.subtype
+		}
+		
+		board.firmware = firmware	
 	}
 }
 
@@ -677,7 +701,7 @@ func (board *Board) writeFile(path string, buffer []byte) string {
 
 	board.consume()
 
-	notify("progress", "\033[K"+strconv.Itoa(outIndex)+" of "+strconv.Itoa(len(buffer))+" bytes sended ...\r")
+	notify("progress", "\033[K"+strconv.Itoa(outIndex)+" of "+strconv.Itoa(len(buffer))+" bytes sended (" + path + ") ...\r")
 
 	// Send command and test for echo
 	board.port.Write([]byte(writeCommand + "\r"))
@@ -696,7 +720,7 @@ func (board *Board) writeFile(path string, buffer []byte) string {
 					outLen = 0
 				}
 
-				notify("progress", "\033[K"+strconv.Itoa(outIndex+outLen)+" of "+strconv.Itoa(len(buffer))+" bytes sended ...\r")
+				notify("progress", "\033[K"+strconv.Itoa(outIndex+outLen)+" of "+strconv.Itoa(len(buffer))+" bytes sended (" + path + ") ...\r")
 
 				// Send chunk length
 				board.port.Write([]byte{byte(outLen)})
@@ -715,7 +739,7 @@ func (board *Board) writeFile(path string, buffer []byte) string {
 		if board.readLineCRLF() == "true" {
 			board.consume()
 
-			notify("progress", "\n\033[Kfile sended\r\n")
+			notify("progress", "\033[Kfile sended\r")
 
 			return "ok"
 		}
@@ -879,7 +903,7 @@ func exec_cmd(cmd string, wg *sync.WaitGroup) {
 	wg.Done()
 }
 
-func (board *Board) upgrade(flash bool, flashFS bool) {
+func (board *Board) upgrade(erase bool, flash bool, flashFS bool) {
 	var boardName string
 	var out string = ""
 
@@ -896,26 +920,88 @@ func (board *Board) upgrade(flash bool, flashFS bool) {
 		Upgrading = false
 		return
 	}
+	
+	if erase {
+		notify("progress", "Erasing flash")
 
-	// Download firmware
-	err = downloadFirmware(board.model)
-	if err != nil {
-		notify("boardUpdate", err.Error())
-		time.Sleep(time.Millisecond * 1000)
-		Upgrading = false
-		return
+		flash_args := "--chip esp32 --port " + board.dev + " --baud 115200 erase_flash"
+
+		// Build the flash command
+		cmdArgs := regexp.MustCompile(`'.*?'|".*?"|\S+`).FindAllString(flash_args, -1)
+
+		for i, _ := range cmdArgs {
+			cmdArgs[i] = strings.Replace(cmdArgs[i], "\"", "", -1)
+		}
+
+		// Prepare for execution
+		cmd := exec.Command(AppDataTmpFolder+"/utils/esptool/esptool", cmdArgs...)
+
+		log.Println("executing: ", "\""+AppDataTmpFolder+"/utils/esptool/esptool\"")
+
+		// We need to read command stdout for show the progress in the IDE
+		stdout, _ := cmd.StdoutPipe()
+
+		notify("progress", "\r                   \r")
+
+		// Start
+		cmd.Start()
+
+		// Read stdout until EOF
+		c := make([]byte, 1)
+		for {
+			_, err := stdout.Read(c)
+			if err != nil {
+				break
+			}
+
+			if c[0] == '\r' || c[0] == '\n' {
+				out = strings.Replace(out, "...", "", -1)
+				if out != "" {
+					notify("progress", "Erasing flash ...\r")
+				}
+				out = ""
+			} else {
+				out = out + string(c)
+			}
+
+		}
+
+		log.Println("Erased")
 	}
 
-	// Get the board name part of the firmware files for
-	// current board model
-	if board.model == "N1ESP32" {
-		boardName = "WHITECAT-ESP32-N1"
-	} else if board.model == "ESP32COREBOARD" {
-		boardName = "ESP32-CORE-BOARD"
-	} else if board.model == "ESP32THING" {
-		boardName = "ESP32-THING"
-	}
+	if flash || flashFS {
+		// Download firmware
+		err = downloadFirmware(board.firmware)
+		if err != nil {
+			notify("boardUpdate", err.Error())
+			time.Sleep(time.Millisecond * 1000)
+			Upgrading = false
+			return
+		}
 
+		// Get the board name part of the firmware files for
+		// current board model
+		boardName = ""
+	
+		if (board.brand != "") {
+			boardName = board.brand + "-"
+		}
+	
+		if board.model == "N1ESP32" {
+			boardName = boardName + "WHITECAT-ESP32-N1"
+		} else if board.model == "ESP32COREBOARD" {
+			boardName = boardName + "ESP32-CORE-BOARD"
+		} else if board.model == "ESP32THING" {
+			boardName = boardName + "ESP32-THING"
+		} else if board.model == "GENERIC" {
+			boardName = boardName + "GENERIC"
+		}
+
+		if (board.subtype != "") {
+			boardName = boardName + "-" + board.subtype
+		}
+	}
+	
 	if flash {
 		notify("progress", "Flasing last firmware\r\n")
 
@@ -933,6 +1019,10 @@ func (board *Board) upgrade(flash bool, flashFS bool) {
 		flash_args = strings.Replace(flash_args, "bootloader."+boardName+".bin", "\""+AppDataTmpFolder+"/firmware_files/bootloader."+boardName+".bin\"", -1)
 		flash_args = strings.Replace(flash_args, "lua_rtos."+boardName+".bin", "\""+AppDataTmpFolder+"/firmware_files/lua_rtos."+boardName+".bin\"", -1)
 		flash_args = strings.Replace(flash_args, "partitions_singleapp."+boardName+".bin", "\""+AppDataTmpFolder+"/firmware_files/partitions_singleapp."+boardName+".bin\"", -1)
+		flash_args = strings.Replace(flash_args, "partitions-ota."+boardName+".bin", "\""+AppDataTmpFolder+"/firmware_files/partitions_singleapp."+boardName+".bin\"", -1)
+		flash_args = strings.Replace(flash_args, "partitions-ota.bin", "\""+AppDataTmpFolder+"/firmware_files/partitions_singleapp."+boardName+".bin\"", -1)
+		flash_args = strings.Replace(flash_args, "phy_init_data."+boardName+".bin", "\""+AppDataTmpFolder+"/firmware_files/phy_init_data."+boardName+".bin\"", -1)
+		flash_args = strings.Replace(flash_args, "phy_init_data.bin", "\""+AppDataTmpFolder+"/firmware_files/phy_init_data."+boardName+".bin\"", -1)
 
 		// Add usb port to flash arguments
 		flash_args = "--port " + board.dev + " " + flash_args
