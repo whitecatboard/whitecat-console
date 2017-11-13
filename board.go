@@ -989,6 +989,8 @@ func (board *Board) upgrade(erase bool, flash bool, flashFS bool) {
 	
 		if board.model == "N1ESP32" {
 			boardName = boardName + "WHITECAT-ESP32-N1"
+		} else if board.model == "N1ESP32-DEVKIT" {
+			boardName = boardName + "WHITECAT-ESP32-N1-DEVKIT"
 		} else if board.model == "ESP32COREBOARD" {
 			boardName = boardName + "ESP32-CORE-BOARD"
 		} else if board.model == "ESP32THING" {

@@ -296,7 +296,7 @@ func main() {
 		board := ""
 		okayResponses := []string{"y", "Y", "yes", "Yes", "YES"}
 		nokayResponses := []string{"n", "N", "no", "No", "NO"}
-		okayBoards := []string{"1", "2", "3", "4", "5", "6", "7", "8"}
+		okayBoards := []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}
 
 		fmt.Println("Unknown board model.")
 		fmt.Println("Maybe your firmware is corrupted, or you haven't a valid Lua RTOS firmware installed.")
@@ -314,12 +314,14 @@ func main() {
 						fmt.Println("\nPlease, enter your board type:")
 						fmt.Println("  1: WHITECAT N1")
 						fmt.Println("  2: WHITECAT N1 WITH OTA")
-						fmt.Println("  3: ESP32 CORE BOARD")
-						fmt.Println("  4: ESP32 CORE BOARD WITH OTA")
-						fmt.Println("  5: ESP32 THING")
-						fmt.Println("  6: ESP32 THING WITH OTA")
-						fmt.Println("  7: GENERIC")
-						fmt.Println("  8: GENERIC WITH OTA\r\n")
+						fmt.Println("  3: WHITECAT N1 DEVKIT")
+						fmt.Println("  4: WHITECAT N1 DEVKIT WITH OTA")
+						fmt.Println("  5: ESP32 CORE BOARD")
+						fmt.Println("  6: ESP32 CORE BOARD WITH OTA")
+						fmt.Println("  7: ESP32 THING")
+						fmt.Println("  8: ESP32 THING WITH OTA")
+						fmt.Println("  9: GENERIC")
+						fmt.Println(" 10: GENERIC WITH OTA\r\n")
 						fmt.Print("Type: ")
 
 						_, err = fmt.Scanln(&board)
@@ -331,18 +333,24 @@ func main() {
 									connectedBoard.model = "N1ESP32"
 									connectedBoard.subtype = "OTA"
 								} else if board == "3" {
-									connectedBoard.model = "ESP32COREBOARD"
+									connectedBoard.model = "N1ESP32-DEVKIT"
+									connectedBoard.subtype = ""
 								} else if board == "4" {
-									connectedBoard.model = "ESP32COREBOARD"
+									connectedBoard.model = "N1ESP32-DEVKIT"
 									connectedBoard.subtype = "OTA"
 								} else if board == "5" {
-									connectedBoard.model = "ESP32THING"
+									connectedBoard.model = "ESP32COREBOARD"
 								} else if board == "6" {
-									connectedBoard.model = "ESP32THING"
+									connectedBoard.model = "ESP32COREBOARD"
 									connectedBoard.subtype = "OTA"
 								} else if board == "7" {
-									connectedBoard.model = "GENERIC"
+									connectedBoard.model = "ESP32THING"
 								} else if board == "8" {
+									connectedBoard.model = "ESP32THING"
+									connectedBoard.subtype = "OTA"
+								} else if board == "9" {
+									connectedBoard.model = "GENERIC"
+								} else if board == "10" {
 									connectedBoard.model = "GENERIC"
 									connectedBoard.subtype = "OTA"
 								}
