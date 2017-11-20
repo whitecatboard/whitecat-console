@@ -220,6 +220,9 @@ func main() {
 
 	AppDataTmpFolder = path.Join(AppDataFolder, "tmp")
 
+	// Clean tmp folder
+	os.RemoveAll(AppDataTmpFolder + "/")
+
 	_ = os.Mkdir(AppDataFolder, 0755)
 	_ = os.Mkdir(AppDataTmpFolder, 0755)
 
@@ -387,4 +390,7 @@ func main() {
 		connectedBoard.upgrade(true, false, false)
 		notify("progress", "Board erased           \r\n")
 	}
+	
+	// Clean tmp folder
+	os.RemoveAll(AppDataTmpFolder + "/")
 }

@@ -66,7 +66,8 @@ var Upgrading bool
 type Board struct {
 	// Serial port
 	port *serial.Port
-
+	devInfo *serial.Info
+	
 	// Device name
 	dev string
 
@@ -250,12 +251,19 @@ func (board *Board) attach(info *serial.Info, prerequisites bool) {
 	defer func() {
 		if err := recover(); err != nil {
 			board.detach()
+			
+			vendorId, productId, _ := board.devInfo.USBVIDPID()
+			if (vendorId == 0x1a86) && (productId == 0x7523) {
+				connectedBoard = board
+			}
 		} else {
 			log.Println("board attached")
 		}
 	}()
 
 	log.Println("attaching board ...")
+
+	board.devInfo = info
 
 	// Configure options or serial port connection
 	options := serial.RawOptions
@@ -378,44 +386,44 @@ func (board *Board) waitForReady() bool {
 	whitecat := false
 	line := ""
 
-	defer func() {
-		board.noTimeout()
+	log.Println("waiting fot ready ...")
 
-		if err := recover(); err != nil {
-			if booting {
-				board.validFirmware = false
-			}
-		}
-	}()
-
-	log.Println("waiting for ready ...")
-
+	vendorId, productId, _ := board.devInfo.USBVIDPID()
+	
+	board.timeout(4000)
+	
+	timeout := time.After(time.Millisecond * time.Duration(board.timeoutVal))
+	
 	for {
 		select {
-		case <-time.After(time.Millisecond * 2000):
+		case <-timeout:
 			panic(errors.New("timeout"))
 		default:
-			board.timeout(4000)
 			line = board.readLineCRLF()
-			board.noTimeout()
 
 			if regexp.MustCompile(`^.*boot: Failed to verify app image.*$`).MatchString(line) {
 				notify("boardUpdate", "Corrupted firmware")
-				board.validFirmware = false
-				return true
+				return false
 			}
 
 			if regexp.MustCompile(`^Falling back to built-in command interpreter.$`).MatchString(line) {
 				notify("boardUpdate", "Flash error")
-				board.validFirmware = false
-				return true
+				return false
 			}
 
 			if !booting {
-				booting = regexp.MustCompile(`^rst:.*\(POWERON_RESET\),boot:.*(.*)$`).MatchString(line)
+				if (vendorId == 0x1a86) && (productId == 0x7523) {
+					booting = regexp.MustCompile(`Booting Lua RTOS...`).MatchString(line)
+				} else {
+					booting = regexp.MustCompile(`^rst:.*\(POWERON_RESET\),boot:.*(.*)$`).MatchString(line)
+				}
 			} else {
 				if !whitecat {
-					whitecat = regexp.MustCompile(`Booting Lua RTOS...`).MatchString(line)
+					if (vendorId != 0x1a86) || (productId != 0x7523) {
+						whitecat = regexp.MustCompile(`Booting Lua RTOS...`).MatchString(line)
+					} else {
+						whitecat = true
+					}
 					if whitecat {
 						// Send Ctrl-D
 						board.port.Write([]byte{4})
@@ -430,6 +438,7 @@ func (board *Board) waitForReady() bool {
 		}
 	}
 }
+
 
 // Test if line corresponds to Lua RTOS prompt
 func isPrompt(line string) bool {
@@ -929,6 +938,7 @@ func (board *Board) upgrade(erase bool, flash bool, flashFS bool) {
 		notify("boardUpdate", err.Error())
 		time.Sleep(time.Millisecond * 1000)
 		Upgrading = false
+		
 		return
 	}
 
@@ -987,6 +997,7 @@ func (board *Board) upgrade(erase bool, flash bool, flashFS bool) {
 			notify("boardUpdate", err.Error())
 			time.Sleep(time.Millisecond * 1000)
 			Upgrading = false
+			
 			return
 		}
 
@@ -1004,6 +1015,7 @@ func (board *Board) upgrade(erase bool, flash bool, flashFS bool) {
 			notify("boardUpdate", err.Error())
 			time.Sleep(time.Millisecond * 1000)
 			Upgrading = false
+			
 			return
 		}
 
@@ -1072,6 +1084,7 @@ func (board *Board) upgrade(erase bool, flash bool, flashFS bool) {
 			notify("boardUpdate", err.Error())
 			time.Sleep(time.Millisecond * 1000)
 			Upgrading = false
+			
 			return
 		}
 
