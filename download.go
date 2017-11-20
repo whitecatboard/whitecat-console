@@ -83,7 +83,7 @@ func unzip(src, dest string) error {
 			}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -117,7 +117,7 @@ func downloadEsptool() error {
 	} else {
 		return err
 	}
-	
+
 	return nil
 }
 
@@ -149,6 +149,6 @@ func downloadFirmware(firmware string) error {
 	} else {
 		return err
 	}
-	
+
 	return nil
 }

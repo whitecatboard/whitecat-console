@@ -190,8 +190,8 @@ func main() {
 	if (!erase && !up && !down && !ls && !(flash || flashFS)) || (port == "") {
 		ok = false
 	}
-	
-	if (erase && (flash || flashFS)) {
+
+	if erase && (flash || flashFS) {
 		ok = false
 	}
 
@@ -255,7 +255,7 @@ func main() {
 	}
 
 	// Connect board
-	connect(!erase,port)
+	connect(!erase, port)
 	if connectedBoard == nil {
 		fmt.Println("Can't connect to any board at port " + port + ".\r\n")
 		fmt.Println("Available serial ports on your computer:\r\n")
@@ -276,27 +276,25 @@ func main() {
 
 		firmware := ""
 
-		if (connectedBoard.brand != "") {
+		if connectedBoard.brand != "" {
 			firmware = connectedBoard.brand + "-"
 		}
 
 		firmware = firmware + connectedBoard.model
 
-		if (connectedBoard.subtype != "") {
+		if connectedBoard.subtype != "" {
 			firmware = firmware + "-" + connectedBoard.subtype
 		}
 
-		connectedBoard.firmware = firmware	
+		connectedBoard.firmware = firmware
 	} else {
 		connectedBoard.noTimeout()
 	}
 
 	if (connectedBoard.model == "") && !erase {
 		conf := ""
-		board := ""
 		okayResponses := []string{"y", "Y", "yes", "Yes", "YES"}
 		nokayResponses := []string{"n", "N", "no", "No", "NO"}
-		okayBoards := []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}
 
 		fmt.Println("Unknown board model.")
 		fmt.Println("Maybe your firmware is corrupted, or you haven't a valid Lua RTOS firmware installed.")
@@ -308,74 +306,12 @@ func main() {
 			if err == nil {
 				if containsString(okayResponses, conf) {
 					for {
-						connectedBoard.brand = ""
-						connectedBoard.subtype = ""
+						fmt.Print("\r\n")
+						connectedBoard.selectSupportedBoard()
+						connectedBoard.upgrade(false, true, flashFS)
+						notify("progress", "board upgraded\r\n")
 
-						fmt.Println("\nPlease, enter your board type:")
-						fmt.Println("  1: WHITECAT N1")
-						fmt.Println("  2: WHITECAT N1 WITH OTA")
-						fmt.Println("  3: WHITECAT N1 DEVKIT")
-						fmt.Println("  4: WHITECAT N1 DEVKIT WITH OTA")
-						fmt.Println("  5: ESP32 CORE BOARD")
-						fmt.Println("  6: ESP32 CORE BOARD WITH OTA")
-						fmt.Println("  7: ESP32 THING")
-						fmt.Println("  8: ESP32 THING WITH OTA")
-						fmt.Println("  9: GENERIC")
-						fmt.Println(" 10: GENERIC WITH OTA\r\n")
-						fmt.Print("Type: ")
-
-						_, err = fmt.Scanln(&board)
-						if err == nil {
-							if containsString(okayBoards, board) {
-								if board == "1" {
-									connectedBoard.model = "N1ESP32"
-								} else if board == "2" {
-									connectedBoard.model = "N1ESP32"
-									connectedBoard.subtype = "OTA"
-								} else if board == "3" {
-									connectedBoard.model = "N1ESP32-DEVKIT"
-									connectedBoard.subtype = ""
-								} else if board == "4" {
-									connectedBoard.model = "N1ESP32-DEVKIT"
-									connectedBoard.subtype = "OTA"
-								} else if board == "5" {
-									connectedBoard.model = "ESP32COREBOARD"
-								} else if board == "6" {
-									connectedBoard.model = "ESP32COREBOARD"
-									connectedBoard.subtype = "OTA"
-								} else if board == "7" {
-									connectedBoard.model = "ESP32THING"
-								} else if board == "8" {
-									connectedBoard.model = "ESP32THING"
-									connectedBoard.subtype = "OTA"
-								} else if board == "9" {
-									connectedBoard.model = "GENERIC"
-								} else if board == "10" {
-									connectedBoard.model = "GENERIC"
-									connectedBoard.subtype = "OTA"
-								}
-
-								firmware := ""
-		
-								if (connectedBoard.brand != "") {
-									firmware = connectedBoard.brand + "-"
-								}
-		
-								firmware = firmware + connectedBoard.model
-
-								if (connectedBoard.subtype != "") {
-									firmware = firmware + "-" + connectedBoard.subtype
-								}
-		
-								connectedBoard.firmware = firmware	
-
-								fmt.Print("\r\n")
-								connectedBoard.upgrade(false, true, flashFS)
-								notify("progress", "board upgraded\r\n")
-								
-								os.Exit(1)
-							}
-						}
+						os.Exit(1)
 					}
 					os.Exit(1)
 				} else if containsString(nokayResponses, conf) {
@@ -419,7 +355,7 @@ func main() {
 		connectedBoard.consoleOut = true
 		connectedBoard.consoleIn = false
 		lastCommit := ""
-		
+
 		// Test for a new firmware version
 		resp, err := http.Get(LastBuildURL + "?firmware=" + connectedBoard.firmware)
 		if err == nil {
@@ -447,7 +383,7 @@ func main() {
 			connectedBoard.upgrade(false, newBuild && flash, flashFS)
 			notify("progress", "board upgraded to "+lastCommit+"\r\n")
 		}
-	} else if (erase) {
+	} else if erase {
 		connectedBoard.upgrade(true, false, false)
 		notify("progress", "Board erased           \r\n")
 	}

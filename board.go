@@ -50,6 +50,17 @@ import (
 	"time"
 )
 
+type SupportedBoard struct {
+	Id           string
+	Description  string
+	Manufacturer string
+	Brand        string
+	Type         string
+	Subtype      string
+}
+
+type SupportedBoards []SupportedBoard
+
 var Upgrading bool
 
 type Board struct {
@@ -66,10 +77,10 @@ type Board struct {
 	info string
 
 	// Board model
-	model string
-	subtype string
-	brand string
-	ota bool
+	model    string
+	subtype  string
+	brand    string
+	ota      bool
 	firmware string
 
 	// RXQueue
@@ -624,18 +635,18 @@ func (board *Board) reset(prerequisites bool) {
 		board.ota = boardInfo.Ota
 
 		firmware := ""
-		
-		if (board.brand != "") {
+
+		if board.brand != "" {
 			firmware = board.brand + "-"
 		}
-		
+
 		firmware = firmware + board.model
 
-		if (board.subtype != "") {
+		if board.subtype != "" {
 			firmware = firmware + "-" + board.subtype
 		}
-		
-		board.firmware = firmware	
+
+		board.firmware = firmware
 	}
 }
 
@@ -701,7 +712,7 @@ func (board *Board) writeFile(path string, buffer []byte) string {
 
 	board.consume()
 
-	notify("progress", "\033[K"+strconv.Itoa(outIndex)+" of "+strconv.Itoa(len(buffer))+" bytes sended (" + path + ") ...\r")
+	notify("progress", "\033[K"+strconv.Itoa(outIndex)+" of "+strconv.Itoa(len(buffer))+" bytes sended ("+path+") ...\r")
 
 	// Send command and test for echo
 	board.port.Write([]byte(writeCommand + "\r"))
@@ -720,7 +731,7 @@ func (board *Board) writeFile(path string, buffer []byte) string {
 					outLen = 0
 				}
 
-				notify("progress", "\033[K"+strconv.Itoa(outIndex+outLen)+" of "+strconv.Itoa(len(buffer))+" bytes sended (" + path + ") ...\r")
+				notify("progress", "\033[K"+strconv.Itoa(outIndex+outLen)+" of "+strconv.Itoa(len(buffer))+" bytes sended ("+path+") ...\r")
 
 				// Send chunk length
 				board.port.Write([]byte{byte(outLen)})
@@ -920,7 +931,7 @@ func (board *Board) upgrade(erase bool, flash bool, flashFS bool) {
 		Upgrading = false
 		return
 	}
-	
+
 	if erase {
 		notify("progress", "Erasing flash")
 
@@ -981,29 +992,9 @@ func (board *Board) upgrade(erase bool, flash bool, flashFS bool) {
 
 		// Get the board name part of the firmware files for
 		// current board model
-		boardName = ""
-	
-		if (board.brand != "") {
-			boardName = board.brand + "-"
-		}
-	
-		if board.model == "N1ESP32" {
-			boardName = boardName + "WHITECAT-ESP32-N1"
-		} else if board.model == "N1ESP32-DEVKIT" {
-			boardName = boardName + "WHITECAT-ESP32-N1-DEVKIT"
-		} else if board.model == "ESP32COREBOARD" {
-			boardName = boardName + "ESP32-CORE-BOARD"
-		} else if board.model == "ESP32THING" {
-			boardName = boardName + "ESP32-THING"
-		} else if board.model == "GENERIC" {
-			boardName = boardName + "GENERIC"
-		}
-
-		if (board.subtype != "") {
-			boardName = boardName + "-" + board.subtype
-		}
+		boardName = board.getFirmwareName()
 	}
-	
+
 	if flash {
 		notify("progress", "Flasing last firmware\r\n")
 
@@ -1136,4 +1127,102 @@ func (board *Board) upgrade(erase bool, flash bool, flashFS bool) {
 
 	time.Sleep(time.Millisecond * 1000)
 	Upgrading = false
+}
+
+func (board *Board) selectSupportedBoard() {
+	var supportedBoards SupportedBoards
+
+	okayBoards := []string{}
+
+	board.brand = ""
+	board.subtype = ""
+
+	// Get supported boards
+	resp, err := http.Get("https://raw.githubusercontent.com/whitecatboard/Lua-RTOS-ESP32/master/boards/boards.json")
+	if err == nil {
+		body, err := ioutil.ReadAll(resp.Body)
+		if err == nil {
+			json.Unmarshal(body, &supportedBoards)
+
+			fmt.Println("\nPlease, enter your board type:\n")
+
+			for option, supportedBoard := range supportedBoards {
+				okayBoards = append(okayBoards, strconv.Itoa(option+1))
+				fmt.Printf("% 3d: %s\n", option+1, supportedBoard.Description)
+			}
+		} else {
+			panic(err)
+		}
+	} else {
+		panic(err)
+	}
+
+	fmt.Print("\nType: ")
+
+	selectedBoard := ""
+
+	_, err = fmt.Scanln(&selectedBoard)
+	if err == nil {
+		if containsString(okayBoards, selectedBoard) {
+			selectedBoard, _ := strconv.Atoi(selectedBoard)
+
+			for option, supportedBoard := range supportedBoards {
+				if option == selectedBoard-1 {
+					board.model = supportedBoard.Type
+					board.subtype = supportedBoard.Subtype
+				}
+			}
+
+			firmware := ""
+
+			if board.brand != "" {
+				firmware = board.brand + "-"
+			}
+
+			firmware = firmware + board.model
+
+			if board.subtype != "" {
+				firmware = firmware + "-" + board.subtype
+			}
+
+			board.firmware = firmware
+		}
+	}
+}
+
+func (board *Board) getFirmwareName() string {
+	var supportedBoards SupportedBoards
+
+	// Get supported boards
+	resp, err := http.Get("https://raw.githubusercontent.com/whitecatboard/Lua-RTOS-ESP32/master/boards/boards.json")
+	if err == nil {
+		body, err := ioutil.ReadAll(resp.Body)
+		if err == nil {
+			json.Unmarshal(body, &supportedBoards)
+
+			for _, supportedBoard := range supportedBoards {
+				if (supportedBoard.Type == board.model) && (supportedBoard.Subtype == board.subtype) {
+					firmware := ""
+
+					if supportedBoard.Brand != "" {
+						firmware = supportedBoard.Brand + "-"
+					}
+
+					firmware = firmware + supportedBoard.Id
+
+					if supportedBoard.Subtype != "" {
+						firmware = firmware + "-" + supportedBoard.Subtype
+					}
+
+					return firmware
+				}
+			}
+		} else {
+			panic(err)
+		}
+	} else {
+		panic(err)
+	}
+
+	return ""
 }
