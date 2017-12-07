@@ -384,6 +384,8 @@ func (board *Board) consume() {
 func (board *Board) waitForReady() bool {
 	booting := false
 	whitecat := false
+	failingBack := 0
+	
 	line := ""
 
 	log.Println("waiting fot ready ...")
@@ -402,13 +404,24 @@ func (board *Board) waitForReady() bool {
 			line = board.readLineCRLF()
 
 			if regexp.MustCompile(`^.*boot: Failed to verify app image.*$`).MatchString(line) {
+				board.validFirmware = false
+				notify("boardUpdate", "Corrupted firmware")
+				return false
+			}
+
+			if regexp.MustCompile(`^.*boot: No bootable app partitions in the partition table.*$`).MatchString(line) {
+				board.validFirmware = false
 				notify("boardUpdate", "Corrupted firmware")
 				return false
 			}
 
 			if regexp.MustCompile(`^Falling back to built-in command interpreter.$`).MatchString(line) {
-				notify("boardUpdate", "Flash error")
-				return false
+				failingBack = failingBack + 1
+				if (failingBack > 4) {
+					board.validFirmware = false
+					notify("boardUpdate", "Flash error")
+					return false
+				}
 			}
 
 			if !booting {
@@ -416,6 +429,9 @@ func (board *Board) waitForReady() bool {
 					booting = regexp.MustCompile(`Booting Lua RTOS...`).MatchString(line)
 				} else {
 					booting = regexp.MustCompile(`^rst:.*\(POWERON_RESET\),boot:.*(.*)$`).MatchString(line)
+					if (!booting) {
+						booting = regexp.MustCompile(`^rst:.*\(RTCWDT_RTC_RESET\),boot:.*(.*)$`).MatchString(line)
+					}
 				}
 			} else {
 				if !whitecat {
@@ -1151,7 +1167,7 @@ func (board *Board) selectSupportedBoard() {
 	board.subtype = ""
 
 	// Get supported boards
-	resp, err := http.Get("https://raw.githubusercontent.com/whitecatboard/Lua-RTOS-ESP32/master/boards/boards.json")
+	resp, err := http.Get(SupportedBoardsURL)
 	if err == nil {
 		body, err := ioutil.ReadAll(resp.Body)
 		if err == nil {
@@ -1207,7 +1223,7 @@ func (board *Board) getFirmwareName() string {
 	var supportedBoards SupportedBoards
 
 	// Get supported boards
-	resp, err := http.Get("https://raw.githubusercontent.com/whitecatboard/Lua-RTOS-ESP32/master/boards/boards.json")
+	resp, err := http.Get(SupportedBoardsURL)
 	if err == nil {
 		body, err := ioutil.ReadAll(resp.Body)
 		if err == nil {

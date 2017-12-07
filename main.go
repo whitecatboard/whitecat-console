@@ -51,6 +51,7 @@ var AppFileName = ""
 
 var LastBuildURL = "http://whitecatboard.org/lastbuildv2.php"
 var FirmwareURL = "http://whitecatboard.org/firmwarev2.php"
+var SupportedBoardsURL = "https://raw.githubusercontent.com/whitecatboard/Lua-RTOS-ESP32/master/boards/boards.json"
 
 func usage() {
 	fmt.Println("usage: wcc -p port | -ports [-ls path | [-down source destination] | [-up source destination] | [-f | -ffs] | [-erase] | -d]\r\n")
