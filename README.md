@@ -54,6 +54,10 @@ Please note you need probably to download and install drivers for your board's U
    | [ESP32 CORE](https://www.silabs.com/products/development-tools/software/usb-to-uart-bridge-vcp-drivers)  | 
    | [ESP32 THING](http://www.ftdichip.com/Drivers/VCP.htm)  | 
 
+For Linux, the currently logged user should have read and write access the sUSB-TO-SERIAL device. On most Linux distributions, this is done by adding the user to dialout group with the following command:
+
+$ sudo usermod -a -G dialout $USER
+
 # Usage
 
 ```lua
