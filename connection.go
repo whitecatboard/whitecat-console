@@ -50,6 +50,17 @@ func console() {
 }
 
 func connect(prerequisites bool, port string) {
+	defer func() {
+		if err := recover(); err != nil {
+			err = err.(error)
+			if err != "timeout" {
+				panic(err)
+			}
+		} else {
+			log.Println("board attached")
+		}
+	}()
+
 	log.Println("connecting to board on", port, "...")
 
 	ConsoleUp = make(chan byte, 1024)
@@ -66,17 +77,14 @@ func connect(prerequisites bool, port string) {
 	var candidate Board
 
 	// Attach candidate
-	candidate.attach(info, prerequisites)	
-	if err := recover(); err != nil {
-	}
-
+	candidate.attach(info, prerequisites)
 	if connectedBoard != nil {
-		if (connectedBoard.validFirmware) {
+		if connectedBoard.validFirmware {
 			connectedBoard.port.Write([]byte("os.shell(false)\r\n"))
 			connectedBoard.consume()
 		}
 	}
-	
+
 	return
 }
 
@@ -86,7 +94,7 @@ func list_ports() {
 	if err != nil {
 		return
 	}
-	
+
 	for _, info := range ports {
 		fmt.Println(info.Name())
 	}

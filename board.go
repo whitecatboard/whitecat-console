@@ -65,9 +65,9 @@ var Upgrading bool
 
 type Board struct {
 	// Serial port
-	port *serial.Port
+	port    *serial.Port
 	devInfo *serial.Info
-	
+
 	// Device name
 	dev string
 
@@ -251,11 +251,15 @@ func (board *Board) attach(info *serial.Info, prerequisites bool) {
 	defer func() {
 		if err := recover(); err != nil {
 			board.detach()
-			
-			vendorId, productId, _ := board.devInfo.USBVIDPID()
-			if (vendorId == 0x1a86) && (productId == 0x7523) {
-				connectedBoard = board
-			}
+
+			connectedBoard = board
+
+			connectedBoard.validFirmware = false
+			connectedBoard.model = ""
+			connectedBoard.subtype = ""
+			connectedBoard.brand = ""
+
+			panic(err)
 		} else {
 			log.Println("board attached")
 		}
@@ -385,17 +389,17 @@ func (board *Board) waitForReady() bool {
 	booting := false
 	whitecat := false
 	failingBack := 0
-	
+
 	line := ""
 
 	log.Println("waiting fot ready ...")
 
 	vendorId, productId, _ := board.devInfo.USBVIDPID()
-	
+
 	board.timeout(4000)
-	
+
 	timeout := time.After(time.Millisecond * time.Duration(board.timeoutVal))
-	
+
 	for {
 		select {
 		case <-timeout:
@@ -417,7 +421,7 @@ func (board *Board) waitForReady() bool {
 
 			if regexp.MustCompile(`^Falling back to built-in command interpreter.$`).MatchString(line) {
 				failingBack = failingBack + 1
-				if (failingBack > 4) {
+				if failingBack > 4 {
 					board.validFirmware = false
 					notify("boardUpdate", "Flash error")
 					return false
@@ -426,7 +430,7 @@ func (board *Board) waitForReady() bool {
 
 			if regexp.MustCompile(`^flash read err,.*$`).MatchString(line) {
 				failingBack = failingBack + 1
-				if (failingBack > 4) {
+				if failingBack > 4 {
 					board.validFirmware = false
 					notify("boardUpdate", "Flash error")
 					return false
@@ -438,7 +442,7 @@ func (board *Board) waitForReady() bool {
 					booting = regexp.MustCompile(`Booting Lua RTOS...`).MatchString(line)
 				} else {
 					booting = regexp.MustCompile(`^rst:.*\(POWERON_RESET\),boot:.*(.*)$`).MatchString(line)
-					if (!booting) {
+					if !booting {
 						booting = regexp.MustCompile(`^rst:.*\(RTCWDT_RTC_RESET\),boot:.*(.*)$`).MatchString(line)
 					}
 				}
@@ -463,7 +467,6 @@ func (board *Board) waitForReady() bool {
 		}
 	}
 }
-
 
 // Test if line corresponds to Lua RTOS prompt
 func isPrompt(line string) bool {
@@ -963,7 +966,7 @@ func (board *Board) upgrade(erase bool, flash bool, flashFS bool) {
 		notify("boardUpdate", err.Error())
 		time.Sleep(time.Millisecond * 1000)
 		Upgrading = false
-		
+
 		return
 	}
 
@@ -1022,13 +1025,15 @@ func (board *Board) upgrade(erase bool, flash bool, flashFS bool) {
 			notify("boardUpdate", err.Error())
 			time.Sleep(time.Millisecond * 1000)
 			Upgrading = false
-			
+
 			return
 		}
 
 		// Get the board name part of the firmware files for
 		// current board model
 		boardName = board.getFirmwareName()
+
+		log.Println("board name: ", boardName)
 	}
 
 	if flash {
@@ -1040,7 +1045,7 @@ func (board *Board) upgrade(erase bool, flash bool, flashFS bool) {
 			notify("boardUpdate", err.Error())
 			time.Sleep(time.Millisecond * 1000)
 			Upgrading = false
-			
+
 			return
 		}
 
@@ -1109,7 +1114,7 @@ func (board *Board) upgrade(erase bool, flash bool, flashFS bool) {
 			notify("boardUpdate", err.Error())
 			time.Sleep(time.Millisecond * 1000)
 			Upgrading = false
-			
+
 			return
 		}
 
@@ -1240,18 +1245,8 @@ func (board *Board) getFirmwareName() string {
 			json.Unmarshal(body, &supportedBoards)
 
 			for _, supportedBoard := range supportedBoards {
-				if (supportedBoard.Type == board.model) && (supportedBoard.Subtype == board.subtype) {
-					firmware := ""
-
-					if supportedBoard.Brand != "" {
-						firmware = supportedBoard.Brand + "-"
-					}
-
-					firmware = firmware + supportedBoard.Type
-
-					if supportedBoard.Subtype != "" {
-						firmware = firmware + "-" + supportedBoard.Subtype
-					}
+				if (supportedBoard.Brand == board.brand) && (supportedBoard.Type == board.model) && (supportedBoard.Subtype == board.subtype) {
+					firmware := supportedBoard.Id
 
 					return firmware
 				}

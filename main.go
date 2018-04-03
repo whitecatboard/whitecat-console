@@ -391,7 +391,7 @@ func main() {
 		connectedBoard.upgrade(true, false, false)
 		notify("progress", "Board erased           \r\n")
 	}
-	
+
 	// Clean tmp folder
 	os.RemoveAll(AppDataTmpFolder + "/")
 }
