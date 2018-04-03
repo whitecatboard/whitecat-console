@@ -52,8 +52,7 @@ func console() {
 func connect(prerequisites bool, port string) {
 	defer func() {
 		if err := recover(); err != nil {
-			err = err.(error)
-			if err != "timeout" {
+			if err.(error).Error() != "timeout" {
 				panic(err)
 			}
 		} else {

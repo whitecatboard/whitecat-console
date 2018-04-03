@@ -232,7 +232,7 @@ func (board *Board) inspector() {
 				} else {
 					if buffer[0] != '\r' {
 						line = line + string(buffer[0])
-					}
+					} 
 				}
 
 				if board.consoleOut {
@@ -386,15 +386,11 @@ func (board *Board) consume() {
 
 // Wait until board is ready
 func (board *Board) waitForReady() bool {
-	booting := false
-	whitecat := false
 	failingBack := 0
 
 	line := ""
 
 	log.Println("waiting fot ready ...")
-
-	vendorId, productId, _ := board.devInfo.USBVIDPID()
 
 	board.timeout(4000)
 
@@ -436,34 +432,15 @@ func (board *Board) waitForReady() bool {
 					return false
 				}
 			}
-
-			if !booting {
-				if (vendorId == 0x1a86) && (productId == 0x7523) {
-					booting = regexp.MustCompile(`Booting Lua RTOS...`).MatchString(line)
-				} else {
-					booting = regexp.MustCompile(`^rst:.*\(POWERON_RESET\),boot:.*(.*)$`).MatchString(line)
-					if !booting {
-						booting = regexp.MustCompile(`^rst:.*\(RTCWDT_RTC_RESET\),boot:.*(.*)$`).MatchString(line)
-					}
-				}
-			} else {
-				if !whitecat {
-					if (vendorId != 0x1a86) || (productId != 0x7523) {
-						whitecat = regexp.MustCompile(`Booting Lua RTOS...`).MatchString(line)
-					} else {
-						whitecat = true
-					}
-					if whitecat {
-						// Send Ctrl-D
-						board.port.Write([]byte{4})
-					}
-					board.consoleOut = true
-				} else {
-					if regexp.MustCompile(`^Lua RTOS-boot-scripts-aborted-ESP32$`).MatchString(line) {
-						return true
-					}
-				}
+			
+			if regexp.MustCompile(`Booting Lua RTOS...`).MatchString(line) {
+				// Send Ctrl-D
+				board.port.Write([]byte{4})
 			}
+
+			if regexp.MustCompile(`^Lua RTOS-boot-scripts-aborted-ESP32$`).MatchString(line) {
+				return true
+			}			
 		}
 	}
 }

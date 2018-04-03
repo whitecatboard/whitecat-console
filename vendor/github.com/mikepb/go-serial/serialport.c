@@ -1495,7 +1495,8 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 	else
 		data->termiox_supported = 1;
 #else
-	data->termiox_supported = 0;
+	// WHITECAT
+	data->termiox_supported = 1;
 #endif
 
 	for (i = 0; i < NUM_STD_BAUDRATES; i++) {
