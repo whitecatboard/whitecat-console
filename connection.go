@@ -49,7 +49,7 @@ func console() {
 	}
 }
 
-func connect(prerequisites bool, port string) {
+func connect(port string) {
 	defer func() {
 		if err := recover(); err != nil {
 			if err.(error).Error() != "timeout" {
@@ -76,7 +76,7 @@ func connect(prerequisites bool, port string) {
 	var candidate Board
 
 	// Attach candidate
-	candidate.attach(info, prerequisites)
+	candidate.attach(info)
 	if connectedBoard != nil {
 		if connectedBoard.validFirmware {
 			connectedBoard.port.Write([]byte("os.shell(false)\r\n"))
