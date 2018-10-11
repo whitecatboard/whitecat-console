@@ -31,6 +31,7 @@ package main
 
 import (
 	"archive/zip"
+	"errors"
 	"io"
 	"io/ioutil"
 	"log"
@@ -39,6 +40,7 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 )
 
@@ -97,6 +99,13 @@ func downloadEsptool() error {
 	resp, err := http.Get(url)
 	if err == nil {
 		defer resp.Body.Close()
+
+		if resp.StatusCode == 404 {
+			panic(errors.New("Can't download esptool."))
+		} else if resp.StatusCode != 200 {
+			panic(errors.New("HTTP ERROR " + strconv.Itoa(resp.StatusCode) + " (" + url + ")"))
+		}
+
 		body, err := ioutil.ReadAll(resp.Body)
 		if err == nil {
 			log.Println("downloaded")
@@ -131,6 +140,13 @@ func downloadFirmware(firmware string) error {
 	resp, err := http.Get(url)
 	if err == nil {
 		defer resp.Body.Close()
+
+		if resp.StatusCode == 404 {
+			panic(errors.New("Can't download firmware, or is not yet available in official builds."))
+		} else if resp.StatusCode != 200 {
+			panic(errors.New("HTTP ERROR " + strconv.Itoa(resp.StatusCode) + " (" + url + ")"))
+		}
+
 		body, err := ioutil.ReadAll(resp.Body)
 		if err == nil {
 			err = ioutil.WriteFile(path.Join(AppDataTmpFolder, "firmware.zip"), body, 0777)

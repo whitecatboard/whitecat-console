@@ -922,6 +922,14 @@ func (board *Board) selectSupportedBoard() {
 	// Get supported boards
 	resp, err := http.Get(SupportedBoardsURL)
 	if err == nil {
+		defer resp.Body.Close()
+
+		if resp.StatusCode == 404 {
+			panic(errors.New("Can't download supported boards."))
+		} else if resp.StatusCode != 200 {
+			panic(errors.New("HTTP ERROR " + strconv.Itoa(resp.StatusCode) + " (" + SupportedBoardsURL + ")"))
+		}
+
 		body, err := ioutil.ReadAll(resp.Body)
 		if err == nil {
 			json.Unmarshal(body, &supportedBoards)
@@ -979,6 +987,14 @@ func (board *Board) getFirmwareName() string {
 	// Get supported boards
 	resp, err := http.Get(SupportedBoardsURL)
 	if err == nil {
+		defer resp.Body.Close()
+
+		if resp.StatusCode == 404 {
+			panic(errors.New("Can't download supported boards."))
+		} else if resp.StatusCode != 200 {
+			panic(errors.New("HTTP ERROR " + strconv.Itoa(resp.StatusCode) + " (" + SupportedBoardsURL + ")"))
+		}
+
 		body, err := ioutil.ReadAll(resp.Body)
 		if err == nil {
 			json.Unmarshal(body, &supportedBoards)

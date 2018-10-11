@@ -41,7 +41,7 @@ import (
 	"runtime"
 )
 
-var Version string = "2.0"
+var Version string = "2.2"
 var Options []string
 
 var AppFolder = "/"
@@ -91,6 +91,10 @@ func main() {
 	defer func() {
 		if connectedBoard != nil {
 			connectedBoard.detach()
+		}
+
+		if err := recover(); err != nil {
+			fmt.Println("Error:", err)
 		}
 	}()
 
