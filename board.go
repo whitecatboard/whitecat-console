@@ -776,7 +776,7 @@ func (board *Board) upgrade(erase bool, flash bool, flashFS bool) {
 	}
 
 	if flash {
-		notify("progress", "Flasing last firmware\r\n")
+		notify("progress", "Flashing last firmware\r\n")
 
 		// Read flash arguments
 		b, err := ioutil.ReadFile(AppDataTmpFolder + "/firmware_files/flash_args")
@@ -845,7 +845,7 @@ func (board *Board) upgrade(erase bool, flash bool, flashFS bool) {
 	}
 
 	if flashFS {
-		notify("progress", "Flasing last file system\r\n")
+		notify("progress", "Flashing last file system\r\n")
 
 		// Read flash arguments
 		b, err := ioutil.ReadFile(AppDataTmpFolder + "/firmware_files/flashfs_args")
