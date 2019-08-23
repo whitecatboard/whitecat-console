@@ -387,7 +387,7 @@ func (board *Board) waitForReady() bool {
 
 	line := ""
 
-	log.Println("waiting fot ready ...")
+	log.Println("waiting for ready ...")
 
 	board.timeout(4000)
 
